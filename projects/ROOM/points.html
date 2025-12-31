@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>three.js webgl - custom attributes [particles] - GPU Fixed</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+        <style>
+            body { margin: 0; background-color: #000; color: #fff; }
+            #info { position: absolute; top: 10px; width: 100%; text-align: center; z-index: 100; }
+            a { color: #00ffff; }
+        </style>
+    </head>
+
+    <body>
+        <div id="info">GPU-animated particles - Fixed</div>
+        <div id="container"></div>
+
+        <script type="x-shader/x-vertex" id="vertexshader">
+            uniform float iTime;
+
+            attribute float size;
+            attribute float speed;
+            attribute vec3 direction;
+
+            const float radius = 200.0;
+            const float speedFactor = 30.0;
+
+            void main() {
+                // 1. CALCULATE A REPEATING LIFECYCLE FOR THE PARTICLE
+                // Calculate the time it takes for a particle to cross the screen along the X-axis.
+                float lifeTime = (radius * 2.0) / (direction.x * speed * speedFactor);
+
+                // Get the elapsed time within the current lifecycle (from 0 to lifeTime).
+                float cycleTime = mod(iTime, lifeTime);
+
+                // 2. CALCULATE POSITION
+                // The displacement is now based on the looped `cycleTime`, so the particle path resets.
+                vec3 displacement = direction * speed * speedFactor * cycleTime;
+                vec3 newPosition = position + displacement;
+
+                // 3. CALCULATE SIZE
+                float pulsatingSize = size + 15.0 * sin(0.1 * position.z + iTime * 5.0);
+
+                // Standard model-view-projection
+                vec4 mvPosition = modelViewMatrix * vec4(newPosition, 1.0);
+                gl_PointSize = pulsatingSize * (300.0 / -mvPosition.z);
+                gl_Position = projectionMatrix * mvPosition;
+            }
+        </script>
+
+        <script type="x-shader/x-fragment" id="fragmentshader">
+            uniform vec3 color;
+            uniform sampler2D pointTexture;
+
+            void main() {
+                gl_FragColor = vec4( color, 1.0 );
+                gl_FragColor = gl_FragColor * texture2D( pointTexture, gl_PointCoord );
+            }
+        </script>
+
+        <script type="importmap">
+            {
+                "imports": {
+                    "three": "https://cdn.jsdelivr.net/npm/three@0.166.0/build/three.module.js",
+                    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.166.0/examples/jsm/"
+                }
+            }
+        </script>
+
+        <script type="module">
+            import * as THREE from 'three';
+import { setupOrbitControl } from './configs/setupOrbitControl.js';
+
+            let renderer, scene, camera;
+            let sphere;
+            const clock = new THREE.Clock();
+            let orbitControl;
+            const WIDTH = window.innerWidth;
+            const HEIGHT = window.innerHeight;
+
+            init();
+
+            function init() {
+                camera = new THREE.PerspectiveCamera(40, WIDTH / HEIGHT, 1, 10000);
+                camera.position.z = 300;
+
+                scene = new THREE.Scene();
+
+                const amount = 1000;
+                const radius = 100;
+
+                const positions = new Float32Array(amount * 3);
+                const sizes = new Float32Array(amount);
+                const speeds = new Float32Array(amount);
+                const directions = new Float32Array(amount * 3);
+
+                const vertex = new THREE.Vector3();
+                const direction = new THREE.Vector3();
+
+                for (let i = 0; i < amount; i++) {
+                    vertex.x = -radius;
+                    // vertex.y = (Math.random() * 2 - 1) * 50;
+                    vertex.y = (Math.random() * 2 - 1) * 0;
+                    vertex.z = (Math.random() * 2 - 1) * 50;
+                    vertex.toArray(positions, i * 3);
+
+                    direction.x = Math.random() * 0.5 + 0.5; // Bias to move right
+                    direction.y = (Math.random() - 0.5) * 1;
+                    direction.z = (Math.random() - 0.5) * 0.5;
+                    direction.normalize();
+                    direction.toArray(directions, i * 3);
+
+                    sizes[i] = 20;
+                    speeds[i] = Math.random() * 0.4 + 0.2;
+                }
+
+                const geometry = new THREE.BufferGeometry();
+                geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+                geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+                geometry.setAttribute('speed', new THREE.BufferAttribute(speeds, 1));
+                geometry.setAttribute('direction', new THREE.BufferAttribute(directions, 3));
+
+                const material = new THREE.ShaderMaterial({
+                    uniforms: {
+                        iTime: { value: 0.0 },
+                        color: { value: new THREE.Color(0x00ffff).multiplyScalar(1.5) },
+                        // NOTE: This texture path requires a 'textures' folder next to your HTML file.
+                        pointTexture: { value: new THREE.TextureLoader().load('textures/spark1.png') }
+                    },
+                    vertexShader: document.getElementById('vertexshader').textContent,
+                    fragmentShader: document.getElementById('fragmentshader').textContent,
+                    blending: THREE.AdditiveBlending,
+                    depthTest: false,
+                    transparent: true
+                });
+
+                sphere = new THREE.Points(geometry, material);
+                scene.add(sphere);
+
+                renderer = new THREE.WebGLRenderer();
+                renderer.setPixelRatio(window.devicePixelRatio);
+                renderer.setSize(WIDTH, HEIGHT);
+                renderer.setAnimationLoop(animate); // Use setAnimationLoop for consistent timing
+
+                const container = document.getElementById('container');
+                container.appendChild(renderer.domElement);
+                orbitControl = setupOrbitControl(scene, camera, renderer);
+                window.addEventListener('resize', onWindowResize);
+            }
+
+            function onWindowResize() {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            }
+
+            function animate() {
+                // const time = Date.now() * 0.00000005;
+                const delta = clock.getDelta() + 0.000001;
+                // The only update needed on the CPU is the time uniform
+                sphere.material.uniforms.iTime.value += delta*0.7;
+                // console.log(delta)
+                renderer.render(scene, camera);
+            }
+        </script>
+    </body>
+</html>

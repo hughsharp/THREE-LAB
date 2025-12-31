@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Three.js with Rapier.js Debug Renderer</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #111;
+        }
+        canvas {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <script type="module">
+        import * as THREE from 'https://cdn.skypack.dev/three@0.132.2';
+        import { OrbitControls } from 'https://cdn.skypack.dev/three@0.132.2/examples/jsm/controls/OrbitControls.js';
+        import RAPIER from 'https://cdn.skypack.dev/@dimforge/rapier3d-compat';
+
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(8, 8, 8);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        const controls = new OrbitControls(camera, renderer.domElement);
+
+        async function runSimulation() {
+            await RAPIER.init();
+            const world = new RAPIER.World({ x: 0.0, y: -9.81, z: 0.0 });
+
+            let groundColliderDesc = RAPIER.ColliderDesc.cuboid(10.0, 0.1, 10.0);
+            world.createCollider(groundColliderDesc);
+
+            let cubeBodyDesc = RAPIER.RigidBodyDesc.newDynamic().setTranslation(0.5, 5, 0);
+            let cubeBody = world.createRigidBody(cubeBodyDesc);
+            let cubeColliderDesc = RAPIER.ColliderDesc.cuboid(0.5, 0.5, 0.5).setRestitution(0.7);
+            world.createCollider(cubeColliderDesc, cubeBody);
+
+            let sphereBodyDesc = RAPIER.RigidBodyDesc.newDynamic().setTranslation(-0.5, 7, 0);
+            let sphereBody = world.createRigidBody(sphereBodyDesc);
+            let sphereColliderDesc = RAPIER.ColliderDesc.ball(0.5).setRestitution(0.9);
+            world.createCollider(sphereColliderDesc, sphereBody);
+
+            const geometry = new THREE.BufferGeometry();
+            const material = new THREE.LineBasicMaterial({ vertexColors: true });
+            const lines = new THREE.LineSegments(geometry, material);
+            scene.add(lines);
+
+            const animate = () => {
+                requestAnimationFrame(animate);
+
+                world.step();
+
+                const { vertices, colors } = world.debugRender();
+
+                lines.geometry.setAttribute(
+                    'position',
+                    new THREE.BufferAttribute(vertices, 3)
+                );
+                lines.geometry.setAttribute(
+                    'color',
+                    new THREE.BufferAttribute(colors, 4)
+                );
+
+                controls.update();
+                renderer.render(scene, camera);
+            };
+
+            animate();
+        }
+
+        runSimulation();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+    </script>
+</body>
+</html>

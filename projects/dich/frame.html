@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DICH™ HUD Interface</title>
+    <style>
+        /* --- 1. RESET & BASE STYLES --- */
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            padding: 0;
+            /* Matches the background color from the image */
+            background-color: #FCE1CC; 
+            /* A technical, monospaced font stack */
+            font-family: 'Courier New', Courier, monospace;
+            overflow: hidden; /* Prevent scrolling for this demo */
+        }
+
+        /* --- 2. HUD CONTAINER --- */
+        /* A fixed overlay that covers the entire screen */
+        .hud-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            /* Ensures it sits on top of other content */
+            z-index: 999;
+            /* Allows clicking through the overlay to content beneath */
+            pointer-events: none;
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+            padding: 20px; /* Padding from the screen edge */
+        }
+
+        /* --- 3. SHARED STYLES FOR BLACK BARS --- */
+        .hud-bar {
+            position: absolute;
+            background-color: black;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* --- 4. TOP SECTION --- */
+        /* Top Center "DICH" Bar */
+        .bar-top-center {
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 200px; /* Adjust width as needed */
+            height: 30px;
+            border-bottom-left-radius: 10px;
+            border-bottom-right-radius: 10px;
+            letter-spacing: 2px;
+        }
+
+        /* Top Left "OFF" Label */
+        .label-top-left {
+            position: absolute;
+            top: 25px;
+            left: 25px;
+            color: black;
+            display: flex;
+            align-items: center;
+        }
+        /* Little signal/battery indicator graphic */
+        .indicator {
+            display: inline-block;
+            width: 30px;
+            height: 8px;
+            background: repeating-linear-gradient(
+                to right,
+                black,
+                black 3px,
+                transparent 3px,
+                transparent 5px
+            );
+            margin-right: 8px;
+        }
+
+        /* Top Right "MENU" Label */
+        .label-top-right {
+            position: absolute;
+            top: 25px;
+            right: 25px;
+            color: black;
+        }
+
+
+        /* --- 5. SIDE BARS --- */
+        .bar-side {
+            width: 12px;
+            height: 150px; /* Adjust height based on preference */
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        .bar-left { left: 0; }
+        .bar-right { right: 0; }
+
+
+        /* --- 6. BOTTOM SECTION --- */
+        /* Bottom Center Coordinates Bar */
+        .bar-bottom-center {
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 300px;
+            height: 30px;
+            border-top-left-radius: 10px;
+            border-top-right-radius: 10px;
+            font-size: 12px;
+            letter-spacing: 1px;
+        }
+
+
+        /* --- 7. CORNERS --- */
+        /* We use pseudo-elements (::before, ::after) to create the L-shapes */
+        .corner {
+            position: absolute;
+            width: 80px;  /* Total width of the corner area */
+            height: 80px; /* Total height of the corner area */
+        }
+        .corner::before,
+        .corner::after {
+            content: '';
+            position: absolute;
+            background-color: black;
+        }
+
+        /* Determines the thickness of the corner lines */
+        :root { --corner-thickness: 12px; }
+
+        /* --- Positioning the 4 Corners --- */
+        .tl { top: 0; left: 0; }
+        .tr { top: 0; right: 0; }
+        .bl { bottom: 0; left: 0; }
+        .br { bottom: 0; right: 0; }
+
+        /* --- Creating the L-shapes --- */
+        /* Top Left */
+        .tl::before { top: 0; left: 0; width: 100%; height: var(--corner-thickness); } /* Horizontal part */
+        .tl::after { top: 0; left: 0; width: var(--corner-thickness); height: 100%; }  /* Vertical part */
+
+        /* Top Right */
+        .tr::before { top: 0; right: 0; width: 100%; height: var(--corner-thickness); }
+        .tr::after { top: 0; right: 0; width: var(--corner-thickness); height: 100%; }
+
+        /* Bottom Left */
+        .bl::before { bottom: 0; left: 0; width: 100%; height: var(--corner-thickness); }
+        .bl::after { bottom: 0; left: 0; width: var(--corner-thickness); height: 100%; }
+
+        /* Bottom Right */
+        .br::before { bottom: 0; right: 0; width: 100%; height: var(--corner-thickness); }
+        .br::after { bottom: 0; right: 0; width: var(--corner-thickness); height: 100%; }
+
+    </style>
+</head>
+<body>
+
+    <div class="hud-container">
+
+        <div class="label-top-left">
+            <span class="indicator"></span> OFF
+        </div>
+        <div class="hud-bar bar-top-center">
+            DICH
+        </div>
+        <div class="label-top-right">
+            MENU
+        </div>
+
+        <div class="hud-bar bar-side bar-left"></div>
+        <div class="hud-bar bar-side bar-right"></div>
+
+        <div class="hud-bar bar-bottom-center">
+            X.0278 // Y.0170
+        </div>
+
+        <div class="corner tl"></div> <div class="corner tr"></div> <div class="corner bl"></div> <div class="corner br"></div> </div>
+
+</body>
+</html>

@@ -1,0 +1,94 @@
+/* Shared styles for all corners */
+.corner_frame {
+  width: 14px;
+  height: 14px;
+  
+  /* The single Base64 string from before */
+  background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTQiIGhlaWdodD0iMTQiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTAgMTMuMzE0YzAtMi4xMjIuODQzLTQuMTU3IDIuMzQzLTUuNjU3bDUuMzE0LTUuMzE0QTcuOTk5IDcuOTk5IDAgMCAxIDEzLjMxMyAwSDB2MTMuMzE0WiIgZmlsbD0iIzA3MDcwNyIvPjwvc3ZnPg==');
+  
+  background-repeat: no-repeat;
+  background-size: contain;
+  
+  /* Helper to position them if they aren't already positioned by other CSS */
+  position: absolute; 
+}
+
+/* Specific Rotations */
+
+/* Top-Left (Default) */
+.corner_frame.is-left-top {
+  transform: rotate(0deg);
+}
+
+/* Top-Right (Rotate 90 degrees) */
+.corner_frame.is-right-top {
+  transform: rotate(90deg);
+}
+
+/* Bottom-Right (Rotate 180 degrees) */
+.corner_frame.is-right-bottom {
+  transform: rotate(180deg);
+}
+
+/* Bottom-Left (Rotate 270 degrees) */
+.corner_frame.is-left-bottom {
+  transform: rotate(270deg);
+}
+
+
+.frame_cutout_vertical,
+.frame_cutout_horizont {
+    background-repeat: no-repeat;
+    background-size: contain;
+}
+
+.frame_cutout_vertical {
+    width: 20px;
+    height: 401px;
+    background-image: url("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iNDAxIiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxwYXRoIGQ9Ik0wIDQwMC4zMTRhOCA4IDAgMCAxIDIuMzQzLTUuNjU3bDE1LjMxNC0xNS4zMTRBOCA4IDAgMCAwIDIwIDM3My42ODZWMjcuMzE0YTguMDAxIDguMDAxIDAgMCAwLTIuMzQzLTUuNjU3TDIuMzQzIDYuMzQzQTguMDAxIDguMDAxIDAgMCAxIDAgLjY4NnYzOTkuNjI4WiIgZmlsbD0iIzA3MDcwNyIvPjwvc3ZnPg==");
+}
+
+.frame_cutout_vertical.is-right {
+    transform: rotate(180deg);
+}
+
+.frame_cutout_horizont {
+    width: 400px;
+    height: 20px;
+    background-image: url("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjIwIiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxwYXRoIGQ9Ik0zOTkuNjI3IDBhOC4wMDQgOC4wMDQgMCAwIDAtNS42NTcgMi4zNDNsLTE1LjMxMyAxNS4zMTRBOC4wMDIgOC4wMDIgMCAwIDEgMzczIDIwSDI2LjYyN2E4LjAwMSA4LjAwMSAwIDAgMS01LjY1Ni0yLjM0M0w1LjY1NyAyLjM0M0E4LjAwMSA4LjAwMSAwIDAgMCAwIDBoMzk5LjYyN1oiIGZpbGw9IiMwNzA3MDciLz48L3N2Zz4=");
+}
+
+.frame_cutout_horizont.is-bottom {
+    transform: rotate(180deg);
+}
+
+/* ============================
+   CORNER SHAPES
+   ============================ */
+
+.corner_main_shape {
+    width: 10px;
+    height: 10px;
+    background-repeat: no-repeat;
+    background-size: contain;
+    /* Right-Top SVG (Updated Base) */
+    background-image: url("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAiIGhlaWdodD0iMTAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik0xMCA5LjVhLjUuNSAwIDAgMS0xIDB2LTRBNC41IDQuNSAwIDAgMCA0LjUgMWgtNGEuNS41IDAgMCAxIDAtMUg5YTEgMSAwIDAgMSAxIDF2OC41WiIgZmlsbD0iI0ZFRjZGMSIvPjwvc3ZnPg==");
+}
+
+/* Rotations relative to Right-Top (0deg) */
+
+.corner_main_shape.is-right-top {
+    transform: rotate(0deg);
+}
+
+.corner_main_shape.is-right-bottom {
+    transform: rotate(90deg);
+}
+
+.corner_main_shape.is-left-bottom {
+    transform: rotate(180deg);
+}
+
+.corner_main_shape.is-left-top {
+    transform: rotate(270deg);
+}

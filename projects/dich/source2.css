@@ -1,0 +1,308 @@
+/* =========================================
+   1. BASE STYLES & RESETS
+   ========================================= */
+html {
+    -webkit-text-size-adjust: 100%;
+    -ms-text-size-adjust: 100%;
+    font-family: sans-serif;
+}
+
+body {
+    margin: 0;
+    background-color: #ffdfc4;
+}
+
+/* =========================================
+   2. FRAME CONTAINER & BORDERS
+   ========================================= */
+.frame {
+    z-index: 997;
+    pointer-events: none;
+    min-width: 100%;
+    min-height: 100vh;
+    position: fixed;
+    inset: 0%;
+}
+
+.frame_box {
+    z-index: 1;
+    pointer-events: none;
+    width: 100%;
+    height: 100%;
+    display: block;
+    position: relative;
+}
+
+.frame_box.is-menu {
+    z-index: 3;
+}
+
+/* Border Lines */
+.frame_border-top {
+    z-index: 9;
+    background-color: #070707;
+    width: 100%;
+    height: 1.38889em;
+    position: absolute;
+    inset: 0% 0% auto;
+}
+
+.frame_border-bottom {
+    z-index: 9;
+    background-color: #070707;
+    width: 100%;
+    height: 1.38889em;
+    position: absolute;
+    inset: auto 0% 0%;
+}
+
+.frame_border-left {
+    z-index: 9;
+    background-color: #070707;
+    justify-content: flex-start;
+    align-items: stretch;
+    width: 1.38889em;
+    height: 100%;
+    display: block;
+    position: absolute;
+    inset: 0% auto 0% 0%;
+}
+
+.frame_border-right {
+    z-index: 9;
+    background-color: #070707;
+    width: 1.38889em;
+    height: 100%;
+    display: block;
+    position: absolute;
+    inset: 0% 0% 0% auto;
+}
+
+.frame_corners {
+    pointer-events: none;
+    position: absolute;
+    inset: 0%;
+}
+
+.frame_corners.is-menu {
+    z-index: 4;
+}
+
+/* =========================================
+   3. CORNER FRAMES (Positioning + Visuals)
+   ========================================= */
+
+/* Shared styles for all corners */
+.corner_frame {
+    /* Positioning from source2.css */
+    margin-top: 0;
+    margin-left: 0;
+    position: absolute;
+    inset: auto 0% 0% auto;
+    
+    /* Visuals from frameStyle.css (Overrides generic em width if needed, or works alongside it) */
+    width: 14px; 
+    height: 14px;
+    background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTQiIGhlaWdodD0iMTQiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0iTTAgMTMuMzE0YzAtMi4xMjIuODQzLTQuMTU3IDIuMzQzLTUuNjU3bDUuMzE0LTUuMzE0QTcuOTk5IDcuOTk5IDAgMCAxIDEzLjMxMyAwSDB2MTMuMzE0WiIgZmlsbD0iIzA3MDcwNyIvPjwvc3ZnPg==');
+    background-repeat: no-repeat;
+    background-size: contain;
+}
+
+/* Top-Left */
+.corner_frame.is-left-top {
+    margin-top: 1.38889em;
+    margin-left: 1.38889em;
+    inset: 0% auto auto 0%;
+    transform: rotate(0deg); /* Default rotation */
+}
+
+.corner_frame.is-left-top.is-menu {
+    z-index: 2;
+}
+
+/* Bottom-Left */
+.corner_frame.is-left-bottom {
+    margin-top: 0;
+    margin-bottom: 1.31944em;
+    margin-left: 1.38889em;
+    position: absolute;
+    inset: auto auto 0% 0%;
+    transform: rotate(270deg);
+}
+
+/* Top-Right */
+.corner_frame.is-right-top {
+    margin-top: 1.38889em;
+    margin-right: 1.31944em;
+    position: absolute;
+    inset: 0% 0% auto auto;
+    transform: rotate(90deg);
+}
+
+.corner_frame.is-right-top.is-menu {
+    z-index: 2;
+}
+
+/* Bottom-Right */
+.corner_frame.is-right-bottom {
+    margin-bottom: 1.31944em;
+    margin-right: 1.31944em;
+    inset: auto 0% 0% auto;
+    transform: rotate(180deg);
+}
+
+/* =========================================
+   4. CUTOUTS (Decorations)
+   ========================================= */
+.frame_cutout {
+    pointer-events: none;
+    display: block;
+    position: absolute;
+    inset: 0%;
+}
+
+.frame_cutout.is-menu {
+    z-index: 1;
+}
+
+/* Vertical Cutouts */
+.frame_cutout_vertical {
+    /* Base positioning */
+    width: 20px; /* Updated from frameStyle */
+    height: 401px; /* Updated from frameStyle */
+    background-repeat: no-repeat;
+    background-size: contain;
+    background-image: url("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iNDAxIiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxwYXRoIGQ9Ik0wIDQwMC4zMTRhOCA4IDAgMCAxIDIuMzQzLTUuNjU3bDE1LjMxNC0xNS4zMTRBOCA4IDAgMCAwIDIwIDM3My42ODZWMjcuMzE0YTguMDAxIDguMDAxIDAgMCAwLTIuMzQzLTUuNjU3TDIuMzQzIDYuMzQzQTguMDAxIDguMDAxIDAgMCAxIDAgLjY4NnYzOTkuNjI4WiIgZmlsbD0iIzA3MDcwNyIvPjwvc3ZnPg==");
+}
+
+.frame_cutout_vertical.is-right {
+    margin-top: auto;
+    margin-bottom: auto;
+    margin-right: 1.38889em;
+    position: absolute;
+    inset: 0% 0% 0% auto;
+    transform: rotate(180deg);
+}
+
+.frame_cutout_vertical.is-left {
+    margin-top: auto;
+    margin-bottom: auto;
+    margin-left: 1.38889em;
+    position: absolute;
+    inset: 0% auto 0% 0%;
+}
+
+/* Horizontal Cutouts */
+.frame_cutout_horizont {
+    /* Base positioning */
+    width: 400px; /* Updated from frameStyle */
+    height: 20px; /* Updated from frameStyle */
+    background-repeat: no-repeat;
+    background-size: contain;
+    background-image: url("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjIwIiBmaWxsPSJub25lIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxwYXRoIGQ9Ik0zOTkuNjI3IDBhOC4wMDQgOC4wMDQgMCAwIDAtNS42NTcgMi4zNDNsLTE1LjMxMyAxNS4zMTRBOC4wMDIgOC4wMDIgMCAwIDEgMzczIDIwSDI2LjYyN2E4LjAwMSA4LjAwMSAwIDAgMS01LjY1Ni0yLjM0M0w1LjY1NyAyLjM0M0E4LjAwMSA4LjAwMSAwIDAgMCAwIDBoMzk5LjYyN1oiIGZpbGw9IiMwNzA3MDciLz48L3N2Zz4=");
+}
+
+.frame_cutout_horizont.is-top {
+    margin-top: 1.38889em;
+    margin-left: auto;
+    margin-right: auto;
+    position: absolute;
+    inset: 0% 0% auto;
+    overflow: clip;
+}
+
+.frame_cutout_horizont.is-top.is-menu {
+    z-index: 2;
+}
+
+.frame_cutout_horizont.is-bottom {
+    margin-bottom: 1.38889em;
+    margin-left: auto;
+    margin-right: auto;
+    position: absolute;
+    inset: auto 0% 0%;
+    transform: rotate(180deg);
+}
+
+/* =========================================
+   5. DECORATIVE CORNER SHAPES (Small Inner Details)
+   ========================================= */
+.corner_main_shape {
+    width: 10px;
+    height: 10px;
+    background-repeat: no-repeat;
+    background-size: contain;
+    /* Right-Top SVG (Base) */
+    background-image: url("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAiIGhlaWdodD0iMTAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik0xMCA5LjVhLjUuNSAwIDAgMS0xIDB2LTRBNC41IDQuNSAwIDAgMCA0LjUgMWgtNGEuNS41IDAgMCAxIDAtMUg5YTEgMSAwIDAgMSAxIDF2OC41WiIgZmlsbD0iI0ZFRjZGMSIvPjwvc3ZnPg==");
+}
+
+.corner_main_shape.is-right-top {
+    transform: rotate(0deg);
+}
+
+.corner_main_shape.is-right-bottom {
+    transform: rotate(90deg);
+}
+
+.corner_main_shape.is-left-bottom {
+    transform: rotate(180deg);
+}
+
+.corner_main_shape.is-left-top {
+    transform: rotate(270deg);
+}
+
+/* =========================================
+   6. PROGRESS BAR
+   ========================================= */
+.frame_progress-bar {
+    z-index: 1;
+    justify-content: space-between;
+    align-items: center;
+    display: flex;
+    position: absolute;
+    inset: 0%;
+}
+
+.progress-bar {
+    flex-flow: column;
+    justify-content: space-between;
+    align-items: center;
+    display: flex;
+}
+
+.progress_line {
+    background-color: #393736;
+    flex: 1;
+    width: .0694445em;
+}
+
+.progress-bar-wrap {
+    justify-content: center;
+    align-items: stretch;
+    width: 1.38889em;
+    height: 37vh;
+    margin-left: .694444em;
+    margin-right: .694444em;
+    padding-top: 2.22222em;
+    padding-bottom: 2.22222em;
+    display: flex;
+}
+
+.progress_time-line {
+    background-color: #a6a19d;
+    border-radius: 10px;
+    width: 100%;
+}
+
+.progresbar_dot-1,
+.progresbar_dot-2 {
+    background-color: #393736;
+    width: .208333em;
+    height: .208333em;
+    transform: rotate(45deg);
+}
+
+.progress-bar-js {
+    display: none;
+}

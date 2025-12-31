@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>three.js webgl - GLTFloader</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<link type="text/css" rel="stylesheet" href="main.css">
+		<link type="text/css" rel="stylesheet" href="project.css">
+	</head>
+
+	<body>
+
+		<script type="importmap">
+			{
+				"imports": {
+					"three": "../../build/three.module.js",
+					"three/addons/": "../../examples/jsm/",
+					"three/webgpu": "../../build/three.webgpu.js",
+					"three/tsl": "../../build/three.tsl.js",
+					"postprocessing-extra/" : "../../examples/jsm/postprocessing-extra/",
+					"postprocessing/" : "../../examples/jsm/postprocessing/"
+				}
+			}
+		</script>
+<!-- <div id="cursor-informer"></div> -->
+<div id="loading-container">
+    <div class="loader-content">
+        <h1>Loading Experience</h1>
+        <div id="progress-text">0%</div>
+        <div class="progress-bar-container">
+            <div id="progress-bar"></div>
+        </div>
+        <button id="enter-button">ENTER</button> 
+    </div>
+</div>
+  <!-- <div style="display: flex; width: 100vw; height: 100vh;"> -->
+  
+    <!-- <div id="content" style="width: 610%; height: 100%;">
+      </div>
+    
+    <div id="story" style="width: 0%; height: 100%; background-color: #000000;">
+      </div> -->
+    
+  <!-- </div> -->
+		<!-- <script type="module" src="test.js"></script> -->
+		<script type="module" src="office.js"></script>
+
+	</body>
+</html>
+

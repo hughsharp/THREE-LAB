@@ -1,0 +1,125 @@
+/* Ensure the parent allows positioning */
+.frame {
+  position: relative; /* or fixed/absolute depending on your layout */
+  width: 100%;        /* Ensure parent has width */
+  height: 100vh;      /* Ensure parent has height */
+}
+
+/* The new content div */
+#content {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -10; /* Adjust this: Lower than frame_box if you want borders on top */
+  overflow: auto; /* Allows scrolling inside if content is long */
+will-change: transform;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+}
+
+@keyframes informerPulse {
+    0% {
+        scale: 1;
+        opacity: 1; /* Ensure it starts fully visible */
+    }
+    15% {
+        scale: 1.25; 
+    }
+    30% {
+        scale: 1.1;
+    }
+    50% {
+        scale: 1;
+    }
+    70% {
+        opacity: 1;
+        scale: 1.25;
+    }
+    100% {
+        scale: 1;
+        opacity: 0; /* <<< NEW: Fades out completely at the end of the last beat */
+    }
+}
+#cursor-informer {
+    /* Position and visibility settings */
+    position: fixed; 
+    top: 0;
+    left: 0;
+    pointer-events: none; /* Crucial: Allows mouse events to pass through to the canvas */
+
+    /* Size and initial state */
+    width: 32px;
+    height: 32px;
+    /* transform: translate(-50%, -1900%); Centers the icon on the cursor tip */
+    opacity: 0; /* Starts hidden */
+    transition: opacity 0.1s;
+
+    /* --- NEW STYLING FOR THE INFORMER DIV --- */
+    background-color: #4d5f6e; /* Solid background color for the circle */
+    border: 2px solid white;    /* White border */
+    border-radius: 50%;         /* Makes the div a circle */
+    z-index: 99999;             /* Very big z-index to ensure it's always on top */
+
+    /* Thunder Icon (Base64 SVG - now white) */
+
+    background-size: 80%; /* Adjust size to fit nicely within the circle */
+    background-position: center; /* Center the icon within the div */
+    background-repeat: no-repeat;
+}
+#cursor-informer.active {
+    /* Runs 3 times, uses ease-in-out, AND holds the final 100% frame state */
+    animation: informerPulse 1.8s 1 ease-in-out;
+    animation-fill-mode: forwards; /* <<< NEW: Holds the final opacity: 0 state */
+} 
+
+
+
+#loading-container {
+        position: fixed;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        background-color: #000000; /* Black background */
+        color: #ffffff;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999; /* Ensure it sits on top of everything */
+        transition: opacity 0.5s ease; /* Smooth fade out */
+    }
+    .loader-content { text-align: center; font-family: sans-serif; }
+    .progress-bar-container {
+        width: 300px;
+        height: 4px;
+        background: #333;
+        margin-top: 10px;
+        border-radius: 2px;
+    }
+    #progress-bar {
+        width: 0%;
+        height: 100%;
+        background: #dcd0ba; /* Matches your goldOuterGlowMat color */
+        transition: width 0.2s;
+    }
+
+    #enter-button {
+    display: none; /* Hidden by default */
+    margin-top: 20px;
+    padding: 12px 30px;
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #dcd0ba; /* Gold text */
+    background: transparent;
+    border: 2px solid #dcd0ba; /* Gold border */
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+#enter-button:hover {
+    background: #dcd0ba;
+    color: #000000; /* Black text on hover */
+    box-shadow: 0 0 15px #dcd0ba; /* Glow effect */
+}

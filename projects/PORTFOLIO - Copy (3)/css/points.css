@@ -1,0 +1,157 @@
+/* Import Google Font */
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&display=swap');
+
+/* Background Gradient */
+body {
+    margin: 0;
+    overscroll-behavior: none;
+    background: linear-gradient(to right,
+            rgb(83.137% 83.137% 83.137%) 0%,
+            rgb(78.408% 78.408% 78.408%) 1.5625%,
+            rgb(73.68% 73.68% 73.68%) 3.125%,
+            rgb(68.951% 68.951% 68.951%) 4.6875%,
+            rgb(64.222% 64.222% 64.222%) 6.25%,
+            rgb(60.35% 60.35% 60.35%) 7.8125%,
+            rgb(56.478% 56.478% 56.478%) 9.375%,
+            rgb(52.606% 52.606% 52.606%) 10.9375%,
+            rgb(48.734% 48.734% 48.734%) 12.5%,
+            rgb(45.609% 45.609% 45.609%) 14.0625%,
+            rgb(42.483% 42.483% 42.483%) 15.625%,
+            rgb(39.358% 39.358% 39.358%) 17.1875%,
+            rgb(36.232% 36.232% 36.232%) 18.75%,
+            rgb(33.75% 33.75% 33.75%) 20.3125%,
+            rgb(31.268% 31.268% 31.268%) 21.875%,
+            rgb(28.786% 28.786% 28.786%) 23.4375%,
+            rgb(26.305% 26.305% 26.305%) 25%,
+            rgb(24.372% 24.372% 24.372%) 26.5625%,
+            rgb(22.439% 22.439% 22.439%) 28.125%,
+            rgb(20.506% 20.506% 20.506%) 29.6875%,
+            rgb(18.573% 18.573% 18.573%) 31.25%,
+            rgb(17.101% 17.101% 17.101%) 32.8125%,
+            rgb(15.63% 15.63% 15.63%) 34.375%,
+            rgb(14.158% 14.158% 14.158%) 35.9375%,
+            rgb(12.686% 12.686% 12.686%) 37.5%,
+            rgb(11.596% 11.596% 11.596%) 39.0625%,
+            rgb(10.505% 10.505% 10.505%) 40.625%,
+            rgb(9.414% 9.414% 9.414%) 42.1875%,
+            rgb(8.323% 8.323% 8.323%) 43.75%,
+            rgb(7.542% 7.542% 7.542%) 45.3125%,
+            rgb(6.76% 6.76% 6.76%) 46.875%,
+            rgb(5.978% 5.978% 5.978%) 48.4375%,
+            rgb(5.196% 5.196% 5.196%) 50%,
+            rgb(4.658% 4.658% 4.658%) 51.5625%,
+            rgb(4.121% 4.121% 4.121%) 53.125%,
+            rgb(3.584% 3.584% 3.584%) 54.6875%,
+            rgb(3.046% 3.046% 3.046%) 56.25%,
+            rgb(2.695% 2.695% 2.695%) 57.8125%,
+            rgb(2.345% 2.345% 2.345%) 59.375%,
+            rgb(1.995% 1.995% 1.995%) 60.9375%,
+            rgb(1.644% 1.644% 1.644%) 62.5%,
+            rgb(1.431% 1.431% 1.431%) 64.0625%,
+            rgb(1.218% 1.218% 1.218%) 65.625%,
+            rgb(1.005% 1.005% 1.005%) 67.1875%,
+            rgb(0.793% 0.793% 0.793%) 68.75%,
+            rgb(0.676% 0.676% 0.676%) 70.3125%,
+            rgb(0.559% 0.559% 0.559%) 71.875%,
+            rgb(0.442% 0.442% 0.442%) 73.4375%,
+            rgb(0.325% 0.325% 0.325%) 75%,
+            rgb(0.269% 0.269% 0.269%) 76.5625%,
+            rgb(0.214% 0.214% 0.214%) 78.125%,
+            rgb(0.158% 0.158% 0.158%) 79.6875%,
+            rgb(0.103% 0.103% 0.103%) 81.25%,
+            rgb(0.082% 0.082% 0.082%) 82.8125%,
+            rgb(0.061% 0.061% 0.061%) 84.375%,
+            rgb(0.041% 0.041% 0.041%) 85.9375%,
+            rgb(0.02% 0.02% 0.02%) 87.5%,
+            rgb(0.016% 0.016% 0.016%) 89.0625%,
+            rgb(0.011% 0.011% 0.011%) 90.625%,
+            rgb(0.006% 0.006% 0.006%) 92.1875%,
+            rgb(0.001% 0.001% 0.001%) 93.75%,
+            rgb(0% 0% 0%) 100%);
+}
+
+/* Portfolio Title */
+#portfolio-title {
+    position: fixed;
+    bottom: 1%;
+    left: 5%;
+    transform: translateY(-50%);
+    z-index: 1;
+    pointer-events: none;
+    font-family: 'Orbitron', 'Rajdhani', sans-serif;
+    line-height: 0.9;
+    user-select: none;
+    /* opacity: 0.7; */
+    /* Transparent text */
+}
+
+.title-line {
+    font-size: clamp(4rem, 12vw, 10rem);
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    -webkit-background-clip: text;
+    /* -webkit-text-fill-color: transparent; */
+    background-clip: text;
+    /* Gradient stroke is not supported, using subtle solid stroke */
+    /* -webkit-text-stroke: 2px rgba(255, 255, 255, 0.78); */
+}
+
+/* First Line: 8x Darker (Max ~5.3% Gray) */
+.title-line:nth-child(1) {
+    opacity: 0.7;
+    background: linear-gradient(to left,
+            rgb(0% 0% 0%) 0%,
+            rgb(0.75% 0.75% 0.75%) 14.28%,
+            rgb(1.51% 1.51% 1.51%) 28.57%,
+            rgb(2.27% 2.27% 2.27%) 42.85%,
+            rgb(3.03% 3.03% 3.03%) 57.14%,
+            rgb(3.79% 3.79% 3.79%) 71.42%,
+            rgb(4.55% 4.55% 4.55%) 85.71%,
+            rgb(5.31% 5.31% 5.31%) 100%);
+
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+/* Second Line: Darker Middle Curve */
+.title-line:nth-child(2) {
+    margin-left: 1.25em;
+    /* Indent the second line */
+    opacity: 0.9;
+    background: linear-gradient(to right,
+            rgba(140, 140, 140, 1) 0%,
+            /* 1 - dark start */
+            rgba(160, 160, 160, 0.9) 10%,
+            /* 2 - dark */
+            rgba(180, 180, 180, 0.85) 28%,
+            /* 3 - HARSH jump (lighter) */
+            rgba(200, 200, 200, 0.85) 45%,
+            /* 4 - lighter mid */
+            rgba(220, 220, 220, 0.88) 60%,
+            /* 5 - soft light gray */
+            rgba(235, 235, 235, 0.9) 80%,
+            /* 6 - brighter gray */
+            rgba(250, 250, 250, 0.92) 90%,
+            /* 7 - near-white */
+            rgba(255, 255, 255, 0.95) 100%
+            /* 8 - final white end */
+        );
+
+
+
+
+
+
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+
+
+/* Ensure canvas is above the title text */
+canvas {
+    position: relative;
+    z-index: -10;
+}

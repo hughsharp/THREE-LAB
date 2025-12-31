@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<!-- This site was created in Webflow. https://webflow.com --><!-- Last Published: Wed Jul 02 2025 15:18:42 GMT+0000 (Coordinated Universal Time) -->
+<html data-wf-domain="dich-fashion.webflow.io" data-wf-page="675835c7f4ae1fa1a79b372e"
+  data-wf-site="675835c7f4ae1fa1a79b3733" data-wf-status="1" lang="en">
+
+<head>
+
+  <meta charset="utf-8" />
+  <title>DICH™ Fashion | A New Era of Futuristic Fashion</title>
+  <link href="source2.css" rel="stylesheet" type="text/css" />
+  <link href="./frame/frameStyles.css" rel="stylesheet" type="text/css" />
+
+</head>
+
+<body>
+  
+    <!-- <div class="change-bg"></div> -->
+    <div class="frame">
+      <div class="frame_box">
+        <div class="frame_border-top"></div>
+        <div class="frame_border-bottom"></div>
+        <div class="frame_border-left"></div>
+        <div class="frame_border-right"></div>
+      
+
+      <div class="frame_corners">
+        <div class="corner_frame is-left-top"></div>
+        <div class="corner_frame is-left-bottom"></div>
+        <div class="corner_frame is-right-top"></div>
+        <div class="corner_frame is-right-bottom"></div>
+      </div>
+
+      <div class="frame_cutout">
+        <div class="frame_cutout_vertical is-right"></div>
+        <div class="frame_border is-right"></div>
+        <div class="frame_cutout_vertical is-left"></div>
+        <div class="frame_cutout_horizont is-top"></div>
+        <div class="frame_cutout_horizont is-bottom"></div>
+      </div>
+
+        <div class="frame_corners-white">
+          <div class="corner_main_shape is-left-top"></div>
+          <div class="corner_main_shape is-right-top"></div>
+          <div class="corner_main_shape is-left-bottom"></div>
+          <div class="corner_main_shape is-right-bottom"></div>
+        </div>
+
+
+        <div class="frame_progress-bar">
+          <div class="progress-bar-wrap">
+            <div class="progress-bar">
+              <div class="progresbar_dot-1"></div>
+              <div class="progress_line">
+                <div class="progress_time-line"></div>
+              </div>
+              <div class="progresbar_dot-2"></div>
+            </div>
+          </div>
+          <div class="progress-bar-wrap">
+            <div class="progress-bar">
+              <div class="progresbar_dot-1">
+                <div class="progress_time-line"></div>
+              </div>
+              <div class="progress_line">
+                <div class="progress_time-line"></div>
+              </div>
+              <div class="progresbar_dot-2">
+                <div class="progress_time-line"></div>
+              </div>
+            </div>
+          </div>
+          <div class="progress-bar-js w-embed w-script">
+            <script>
+              document.addEventListener("scroll", () => {
+                const scrollHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+                const scrollTop = window.scrollY;
+                const scrollPercent = Math.min((scrollTop / scrollHeight) * 100, 100);
+
+                document.querySelectorAll(".progress-bar-wrap").forEach((progressBarWrap) => {
+                  const dot1 = progressBarWrap.querySelector(".progresbar_dot-1");
+                  const line = progressBarWrap.querySelector(".progress_line .progress_time-line");
+                  const dot2 = progressBarWrap.querySelector(".progresbar_dot-2");
+
+                  if (scrollPercent <= 3) {
+                    gsap.set(dot1, { backgroundColor: "#393736" });
+                  }
+
+                  if (scrollPercent > 3 && scrollPercent <= 10) {
+                    gsap.to(dot1, {
+                      backgroundColor: "#A6A19D",
+                      duration: 0.2,
+                      overwrite: "auto"
+                    });
+                  }
+
+                  if (scrollPercent > 10 && scrollPercent <= 95) {
+                    const heightPercent = ((scrollPercent - 10) / 85) * 100;
+                    gsap.set(line, { height: `${heightPercent}%` });
+                  }
+
+                  if (scrollPercent >= 99.9) {
+                    gsap.set(line, { height: "100%" });
+                  }
+
+                  if (scrollPercent <= 10) {
+                    gsap.set(line, { height: "0%" });
+                  }
+
+                  if (scrollPercent > 95) {
+                    gsap.to(dot2, {
+                      backgroundColor: "#A6A19D",
+                      duration: 0.2,
+                      overwrite: "auto"
+                    });
+                  } else {
+                    gsap.to(dot2, {
+                      backgroundColor: "#393736",
+                      duration: 0.2,
+                      overwrite: "auto"
+                    });
+                  }
+                });
+              });
+            </script>
+          </div>
+        </div>
+      </div>
+
+
+    </div>
+
+</body>
+
+</html>

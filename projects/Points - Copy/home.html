@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sci-Fi Tech Background</title>
+    <!-- GSAP for animations -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <style>
+        /* --- Basic Reset & Layout --- */
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            background-color: #050505;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #5d4037;
+        }
+
+        /* Simulate a long page so the scroll animation works.
+           The frame is fixed, the content scrolls behind/inside it.
+        */
+        .content-area {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            min-height: 200vh; /* Long height to enable scrolling */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 20vh;
+            background-color: #ffdec0; /* The beige background color */
+            margin: 0 auto;
+            max-width: 95vw; /* Match roughly the frame width */
+            box-sizing: border-box;
+        }
+
+        /* --- FRAME CONTAINER (Fixed Overlay) --- */
+        .frame {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 100; /* Sit above content */
+            pointer-events: none; /* Let clicks pass through to content */
+            padding: 20px; /* Offset from screen edge */
+            box-sizing: border-box;
+        }
+
+        .frame_box {
+            position: absolute;
+            inset: 20px;
+            /* Borders connecting the corners */
+        }
+        
+        /* Thin lines connecting the corners */
+        .frame_border-top, .frame_border-bottom, 
+        .frame_border-left, .frame_border-right {
+            position: absolute;
+            background-color: #393736;
+        }
+
+        .frame_border-top { top: 0; left: 100px; right: 100px; height: 2px; }
+        .frame_border-bottom { bottom: 0; left: 100px; right: 100px; height: 2px; }
+        .frame_border-left { top: 100px; bottom: 100px; left: 0; width: 2px; }
+        .frame_border-right { top: 100px; bottom: 100px; right: 0; width: 2px; }
+
+        /* --- CORNERS (SVG Images) --- */
+        .frame_corners img {
+            position: absolute;
+            width: 80px; /* Adjust size as needed */
+            height: auto;
+        }
+        .is-left-top { top: 20px; left: 20px; }
+        .is-right-top { top: 20px; right: 20px; }
+        .is-left-bottom { bottom: 20px; left: 20px; }
+        .is-right-bottom { bottom: 20px; right: 20px; }
+
+        /* --- CUTOUTS (Mid-section decorations) --- */
+        .frame_cutout img {
+            position: absolute;
+        }
+        .frame_cutout_vertical { height: 120px; width: auto; top: 50%; transform: translateY(-50%); }
+        .frame_cutout_horizont { width: 120px; height: auto; left: 50%; transform: translateX(-50%); }
+        
+        .is-left { left: 10px; } /* Adjusted for visual fit */
+        .is-right { right: 10px; }
+        .is-top { top: 10px; }
+        .is-bottom { bottom: 10px; }
+
+        /* --- DECORATIVE CORNERS (White Accents) --- */
+        .frame_corners-white img {
+            position: absolute;
+            width: 40px;
+            height: auto;
+            opacity: 0.8;
+        }
+        /* Reuse positions but offset slightly inward if needed, or overlap exactly */
+        .frame_corners-white .is-left-top { top: 35px; left: 35px; }
+        .frame_corners-white .is-right-top { top: 35px; right: 35px; }
+        .frame_corners-white .is-left-bottom { bottom: 35px; left: 35px; }
+        .frame_corners-white .is-right-bottom { bottom: 35px; right: 35px; }
+
+        /* --- PROGRESS BARS --- */
+        .frame_progress-bar {
+            position: absolute;
+            right: 40px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 100px; /* Space between the two progress bars if any */
+            height: 400px;
+            justify-content: center;
+        }
+
+        .progress-bar-wrap {
+            position: relative;
+            height: 150px; /* Height of one segment */
+            width: 4px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .progresbar_dot-1, .progresbar_dot-2 {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background-color: #393736;
+            z-index: 2;
+        }
+
+        .progress_line {
+            position: relative;
+            width: 1px;
+            background-color: rgba(57, 55, 54, 0.2);
+            flex-grow: 1;
+            margin: 5px 0;
+        }
+
+        .progress_time-line {
+            width: 100%;
+            background-color: #A6A19D;
+            height: 0%; /* JS will animate this */
+            display: block;
+        }
+
+        h1 {
+            font-size: 3rem;
+            text-transform: uppercase;
+            letter-spacing: 5px;
+            margin-bottom: 20px;
+        }
+        p {
+            max-width: 600px;
+            line-height: 1.6;
+            font-size: 1.2rem;
+            text-align: center;
+        }
+        .scroll-prompt {
+            margin-top: 50px;
+            font-style: italic;
+            opacity: 0.6;
+            animation: bounce 2s infinite;
+        }
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(10px); }
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- Dummy Content to allow scrolling -->
+    <div class="content-area">
+        <h1>System Online</h1>
+        <p>This interface uses the imported HTML structure with SVG assets.</p>
+        <p class="scroll-prompt">Scroll down to test the progress bar animation...</p>
+        <div style="height: 1000px;"></div>
+        <p>End of stream.</p>
+    </div>
+
+    <!-- The User Provided Frame HTML -->
+    <div class="frame">
+        <div class="frame_box">
+            <div class="frame_border-top"></div>
+            <div class="frame_border-bottom"></div>
+            <div class="frame_border-left"></div>
+            <div class="frame_border-right"></div>
+        </div>
+        
+        <div class="frame_corners">
+            <img loading="lazy" src="https://cdn.prod.website-files.com/675835c7f4ae1fa1a79b3733/67585468590a977b47b33414_corner_border_LT.svg" alt="" class="corner_frame is-left-top" draggable="false">
+            <img loading="lazy" src="https://cdn.prod.website-files.com/675835c7f4ae1fa1a79b3733/67585468590a977b47b33413_corner_border_LB.svg" alt="" class="corner_frame is-left-bottom" draggable="false">
+            <img loading="lazy" src="https://cdn.prod.website-files.com/675835c7f4ae1fa1a79b3733/67585468590a977b47b33416_corner_border_RT.svg" alt="" class="corner_frame is-right-top" draggable="false">
+            <img loading="lazy" src="https://cdn.prod.website-files.com/675835c7f4ae1fa1a79b3733/67585468590a977b47b33415_corner_border_RB.svg" alt="" class="corner_frame is-right-bottom" draggable="false">
+        </div>
+
+        <div class="frame_cutout">
+            <img loading="lazy" src="https://cdn.prod.website-files.com/675835c7f4ae1fa1a79b3733/675854af3fc97ce331d53f1c_frame_border_Right.svg" alt="" class="frame_cutout_vertical is-right" draggable="false">
+            <img loading="lazy" src="https://cdn.prod.website-files.com/675835c7f4ae1fa1a79b3733/675854af3fc97ce331d53f1e_frame_border_Left.svg" alt="" class="frame_cutout_vertical is-left" draggable="false">
+            <img loading="lazy" src="https://cdn.prod.website-files.com/675835c7f4ae1fa1a79b3733/675854af3fc97ce331d53f1f_frame_border_Top.svg" alt="" class="frame_cutout_horizont is-top" draggable="false">
+            <img loading="lazy" src="https://cdn.prod.website-files.com/675835c7f4ae1fa1a79b3733/675854af3fc97ce331d53f1d_frame_border_Bottom.svg" alt="" class="frame_cutout_horizont is-bottom" draggable="false">
+        </div>
+
+        <div class="frame_corners-white">
+            <img loading="lazy" src="https://cdn.prod.website-files.com/675835c7f4ae1fa1a79b3733/6758ab7442d662651b7068dd_corner_main_decor_LT.svg" alt="" class="corner_main_shape is-left-top" draggable="false">
+            <img loading="lazy" src="https://cdn.prod.website-files.com/675835c7f4ae1fa1a79b3733/6758ab7442d662651b7068db_corner_main_decor_RT.svg" alt="" class="corner_main_shape is-right-top" draggable="false">
+            <img loading="lazy" src="https://cdn.prod.website-files.com/675835c7f4ae1fa1a79b3733/6758ab7442d662651b7068dc_corner_main_decor_LB.svg" alt="" class="corner_main_shape is-left-bottom" draggable="false">
+            <img loading="lazy" src="https://cdn.prod.website-files.com/675835c7f4ae1fa1a79b3733/6758ab7442d662651b7068de_corner_main_decor_RB.svg" alt="" class="corner_main_shape is-right-bottom" draggable="false">
+        </div>
+
+        <div class="frame_progress-bar">
+            <div class="progress-bar-wrap">
+                <div class="progress-bar">
+                    <div class="progresbar_dot-1" style="background-color: rgb(166, 161, 157);"></div>
+                    <div class="progress_line">
+                        <div class="progress_time-line" style="height: 0.9935%;"></div>
+                    </div>
+                    <div class="progresbar_dot-2" style="background-color: rgb(57, 55, 54);"></div>
+                </div>
+            </div>
+            <div class="progress-bar-wrap">
+                <div class="progress-bar">
+                    <div class="progresbar_dot-1" style="background-color: rgb(166, 161, 157);">
+                        <div class="progress_time-line"></div>
+                    </div>
+                    <div class="progress_line">
+                        <div class="progress_time-line" style="height: 0.9935%;"></div>
+                    </div>
+                    <div class="progresbar_dot-2" style="background-color: rgb(57, 55, 54);">
+                        <div class="progress_time-line"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- The User Provided Script -->
+        <div class="progress-bar-js w-embed w-script">
+            <script>
+                document.addEventListener("scroll", () => {
+                    const scrollHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+                    const scrollTop = window.scrollY;
+                    const scrollPercent = Math.min((scrollTop / scrollHeight) * 100, 100);
+
+                    document.querySelectorAll(".progress-bar-wrap").forEach((progressBarWrap) => {
+                    const dot1 = progressBarWrap.querySelector(".progresbar_dot-1");
+                    const line = progressBarWrap.querySelector(".progress_line .progress_time-line");
+                    const dot2 = progressBarWrap.querySelector(".progresbar_dot-2");
+
+                    if (scrollPercent <= 3) {
+                        gsap.set(dot1, { backgroundColor: "#393736" });
+                    }
+
+                    if (scrollPercent > 3 && scrollPercent <= 10) {
+                        gsap.to(dot1, {
+                        backgroundColor: "#A6A19D",
+                        duration: 0.2,
+                        overwrite: "auto"
+                        });
+                    }
+
+                    if (scrollPercent > 10 && scrollPercent <= 95) {
+                        const heightPercent = ((scrollPercent - 10) / 85) * 100;
+                        gsap.set(line, { height: `${heightPercent}%` });
+                    }
+
+                    if (scrollPercent >= 99.9) {
+                        gsap.set(line, { height: "100%" });
+                    }
+
+                    if (scrollPercent <= 10) {
+                        gsap.set(line, { height: "0%" });
+                    }
+
+                    if (scrollPercent > 95) {
+                        gsap.to(dot2, {
+                        backgroundColor: "#A6A19D",
+                        duration: 0.2,
+                        overwrite: "auto"
+                        });
+                    } else {
+                        gsap.to(dot2, {
+                        backgroundColor: "#393736",
+                        duration: 0.2,
+                        overwrite: "auto"
+                        });
+                    }
+                    });
+                });
+            </script>
+        </div>
+    </div>
+
+</body>
+</html>

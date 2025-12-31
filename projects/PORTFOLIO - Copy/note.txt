@@ -1,0 +1,15 @@
+monitor:
+    - hover: ?
+    - click:?
+
+black cat:
+white cat
+blackhole:
+    - suck
+    - recover:
+chair:
+    - pull
+    -
+drone
+dball
+pball
