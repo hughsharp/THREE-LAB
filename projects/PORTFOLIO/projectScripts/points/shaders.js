@@ -419,7 +419,6 @@ export const fragmentShader = `
     uniform float uLightStrength;
     uniform float uSizeThreshold;
     varying float vStableRandom; // Received from vertex
-    uniform float uHoverLightFactor; // NEW
 
     // COLOR SUPPORT
     varying vec3 vColor;
@@ -522,8 +521,7 @@ export const fragmentShader = `
         vec3 hoverColor = mix(gridHoverColor, modelHoverColor, isModel);
         
         float colorMix = smoothstep(uHoverRadius, 0.0, dist);
-        // Apply uHoverLightFactor here
-        finalColor = mix(finalColor, hoverColor * lightIntensity * uHoverLightFactor, colorMix);
+        finalColor = mix(finalColor, hoverColor * lightIntensity, colorMix);
 
         gl_FragColor = vec4(finalColor, 1.0);
     }

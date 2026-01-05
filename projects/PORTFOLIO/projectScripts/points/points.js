@@ -166,7 +166,6 @@ export default class Points {
             uVibrateBoostSizeThreshold: { value: 35.0 },
             uBaseRotateSpeed: { value: 1. },
             uHoverRadius: { value: 200.0 },
-            uHoverLightFactor: { value: 1.0 },
 
             // Grid
             uGridZ: { value: gridZ },
@@ -673,7 +672,6 @@ export default class Points {
                 uEnableMouseRotation: { value: false },
                 uGridZ: { value: -800 },
                 uModelPointSizeFactor: { value: 1.2 },
-                uHoverLightFactor: { value: 0.2 },
             });
 
             // Loading Complete UI

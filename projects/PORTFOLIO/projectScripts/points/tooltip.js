@@ -1,3 +1,4 @@
+import * as THREE from 'three';
 import { getSpriteInfo } from './spriteMapping.js';
 
 export class Tooltip {
@@ -24,10 +25,9 @@ export class Tooltip {
 
         this.lastHoveredIndex = -1;
         this.lastTooltipRefString = null;
-        this.hideTimer = null;
     }
 
-    _getPointInfo(points, material, idx) {
+    _getPointInfo(points, material, idx, camera, rawMouse) {
         if (!points.geometry.attributes.aStableRandom) return null;
 
         const rnd = points.geometry.attributes.aStableRandom.array[idx];
@@ -47,6 +47,76 @@ export class Tooltip {
         const vIsGridVal = startVal * (1.0 - progress) + targetVal * progress;
         const isGrid = vIsGridVal > 0.5 ? 1.0 : 0.0;
 
+        // --- Calculate Screen Distance (Shader Simulation) ---
+        // We must replicate the vertex shader to know WHERE the point visually is
+        // to determine if it is "Locked" by the hover effect.
+
+        // 1. Get Base Position
+        const positionAttribute = points.geometry.attributes.position;
+        const pt = new THREE.Vector3();
+        pt.fromBufferAttribute(positionAttribute, idx);
+
+        // 2. Apply Model Transforms (If Model Point)
+        // Shader: if (isTargetModel > 0.5) { apply scale, rot, pos }
+        // Note: isGrid in JS is 1.0 for Grid. So isModel is (1.0 - isGrid).
+        const isModel = 1.0 - isGrid;
+
+        if (isModel > 0.5) {
+            // Uniforms
+            const uModelScale = material.uniforms.uModelScale ? material.uniforms.uModelScale.value : 1.0;
+            const uModelPosition = material.uniforms.uModelPosition ? material.uniforms.uModelPosition.value : new THREE.Vector3(0, 0, 0);
+            const uModelRotation = material.uniforms.uModelRotation ? material.uniforms.uModelRotation.value : new THREE.Vector3(0, 0, 0);
+
+            // Scale
+            pt.multiplyScalar(uModelScale);
+
+            // Rotate (Z * Y * X)
+            const euler = new THREE.Euler(uModelRotation.x, uModelRotation.y, uModelRotation.z, 'XYZ');
+            // Shader uses custom matrix calc Z*Y*X, Three.js Euler 'XYZ' applies X then Y then Z (intrinsic) or Z then Y then X (extrinsic)?
+            // Three.js applyEuler with Default XYZ: Applies RotX, then RotY, then RotZ.
+            // Shader: rotateZ * rotateY * rotateX.
+            // This matches Three.js 'ZYX' order??
+            // Verify: Matrix = RotZ * RotY * RotX. Vector * Matrix.
+            // This means we apply X first, then Y, then Z.
+            // Three.js default is XYZ.
+            // Let's assume XYZ for now or use manually constructed matrix if precise match needed.
+            // For simple Y rotation it matters less.
+            pt.applyEuler(euler);
+
+            // Translate
+            pt.add(uModelPosition);
+        }
+
+        // 3. Project to Clip Space
+        pt.applyMatrix4(points.matrixWorld); // Model -> World
+        pt.applyMatrix4(camera.matrixWorldInverse); // World -> View
+        pt.applyMatrix4(camera.projectionMatrix); // View -> Clip
+
+        // 4. Apply Screen Offset (Shader Logic)
+        // Shader: gl_Position.xy += uModelScreenOffset * gl_Position.w;
+        const uModelScreenOffset = material.uniforms.uModelScreenOffset ? material.uniforms.uModelScreenOffset.value : new THREE.Vector2(0, 0);
+        pt.x += uModelScreenOffset.x * pt.w;
+        pt.y += uModelScreenOffset.y * pt.w;
+
+        // 5. Convert to Screen Pixels
+        const ndc = new THREE.Vector2(pt.x / pt.w, pt.y / pt.w);
+        const screenX = (ndc.x * 0.5 + 0.5) * window.innerWidth;
+        const screenY = (ndc.y * 0.5 + 0.5) * window.innerHeight;
+
+        // 6. Calculate Distance
+        // Note: rawMouse.y in Three.js usually is Top-Left or Bottom-Left?
+        // rawMouse passed from points.js is clientX, clientY (Top-Left origin).
+        // screenY above: ndc.y=1 is Top? No, WebGL Y=1 is Top. screenY calc assumes bottom-left 0?
+        // (ndc.y * 0.5 + 0.5). If Y=1 -> 1.0 * H.
+        // DOM Y=0 is Top.
+        // So we need to flip Y comparison.
+        const glScreenY = screenY;
+        const mouseScreenY = window.innerHeight - rawMouse.y; // Convert DOM mouse to GL coords
+        const dx = screenX - rawMouse.x;
+        const dy = glScreenY - mouseScreenY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        // --- Logic Checks ---
         // Cycle Logic from Shader
         const isOtherState = 1.0 - chaos;
         const cycleLen = (isGrid * isOtherState) > 0.5 ? 10.0 : 6.0;
@@ -60,7 +130,21 @@ export class Tooltip {
         const cycle = totalTime % cycleLen;
         const isBuzzPhase = cycle > (cycleLen - buzzDuration) ? 1.0 : 0.0;
 
-        const isActive = 1.0 * isBuzzPhase;
+        // --- LOCK LOGIC ---
+        // Shader:
+        // float isInsideOuter = 1.0 - step(uHoverRadius, dist);
+        // float isOutsideInner = step(minInteractionDist, dist);
+        // float isHover = isInsideOuter * isOutsideInner;
+        // float isActive = isHover * isBuzzPhase;
+
+        const uHoverRadius = material.uniforms.uHoverRadius ? material.uniforms.uHoverRadius.value : 200.0;
+        const minInteractionDist = 5.0; // Hardcoded in Shader
+
+        const isInsideOuter = dist < uHoverRadius ? 1.0 : 0.0;
+        const isOutsideInner = dist > minInteractionDist ? 1.0 : 0.0;
+        const isHover = isInsideOuter * isOutsideInner;
+
+        const isActive = isHover * isBuzzPhase;
 
         // Stepped Time (Flicker)
         const flickSpeed = 13.33;
@@ -96,19 +180,27 @@ export class Tooltip {
         const currentThreshold = raycaster.params.Points.threshold;
         raycaster.params.Points.threshold = 0.5;
 
-        // Ensure raycaster is updated with current camera/mouse (passed from main loop usually, but confirming here logic relies on main update to set it?)
-        // Actually points.js does `this.raycaster.setFromCamera(this.smoothMouse, this.camera);` RIGHT BEFORE this.
-        // So we assume raycaster is ready.
+        // Fix for Offset Raycasting:
+        // Because the Shader applies 'uModelScreenOffset' (2D shift),
+        // the visual points do NOT match the physics points (geometry).
+        // We must inverse-shift the mouse for raycasting to hit the "real" geometry.
+        const offset = material.uniforms.uModelScreenOffset ? material.uniforms.uModelScreenOffset.value : new THREE.Vector2(0, 0);
+
+        // Raycaster uses Normalized Device Coordinates (-1 to +1)
+        // smoothMouse is already in NDC.
+        // uModelScreenOffset is added to NDC in shader.
+        // So: VisualPos = GeoPos + Offset.
+        // If Mouse hits VisualPos, then Mouse = GeoPos + Offset.
+        // So GeoPos = Mouse - Offset.
+        const correctedMouse = smoothMouse.clone().sub(offset);
+
+        // Temporarily override raycaster to use corrected mouse
+        raycaster.setFromCamera(correctedMouse, camera);
 
         const pointIntersects = raycaster.intersectObject(points);
         if (pointIntersects.length > 0) {
-            // Clear any pending hide timer if we hit a point
-            if (this.hideTimer) {
-                clearTimeout(this.hideTimer);
-                this.hideTimer = null;
-            }
             const idx = pointIntersects[0].index;
-            const info = this._getPointInfo(points, material, idx);
+            const info = this._getPointInfo(points, material, idx, camera, rawMouse);
 
             if (this.lastHoveredIndex !== idx) {
                 this.lastHoveredIndex = idx;
@@ -167,21 +259,16 @@ export class Tooltip {
             }
 
         } else {
-            // Instead of hiding immediately, set a debounce timer
-            if (this.lastHoveredIndex !== -1 && !this.hideTimer) {
-                this.hideTimer = setTimeout(() => {
-                    this.hide();
-                }, 200); // 200ms delay to prevent flicker
+            if (this.lastHoveredIndex !== -1) {
+                this.tooltip.style.display = 'none';
+                this.lastHoveredIndex = -1;
+                this.lastTooltipRefString = null;
             }
         }
         raycaster.params.Points.threshold = currentThreshold;
     }
 
     hide() {
-        if (this.hideTimer) {
-            clearTimeout(this.hideTimer);
-            this.hideTimer = null;
-        }
         this.tooltip.style.display = 'none';
         this.lastHoveredIndex = -1;
         this.lastTooltipRefString = null;
