@@ -43,7 +43,7 @@ export async function runIntroScenario(scene, camera, orbitControl, clock) {
     // //    - Animate objects (floor, furniture, books) flying in from their spawn points.
     // //    - Tween the Black Hole into position.
     // //    Ratio: 1500 / 20000 = 0.075
-    await SU.assembleScene(scene, objectMap, MASTER_TIME * 0.075);
+    // await SU.assembleScene(scene, objectMap, MASTER_TIME * 0.075);
 
     // // 5. Light & Atmosphere:
     // //    - Start the rain and storm effects (gradual ramp-up).

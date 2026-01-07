@@ -15,7 +15,7 @@ import { linkConstantUniforms } from '../utils/addConstantUniform.js'
 import { resources } from '../resources/loadResources.js';
 import { getSpriteInfo } from './spriteMapping.js';
 import { Tooltip } from './tooltip.js';
-import { initScrollMorph } from '../interactions/scroll-pointsMorph.js';
+import { initScrollMorph } from '../interactions/scroll-pointsMorphScenario.js';
 // ============================================================================
 // CONSTANTS & CONFIGURATION
 // ============================================================================
@@ -186,8 +186,12 @@ export default class Points {
         const chaosUniforms = THREE.UniformsUtils.clone(this.shaderUniforms);
         this.userData.chaosUniforms = chaosUniforms;
 
+        // Interaction Flags
+        this.forceDisableAttraction = false;
+
         // Tooltip
         this.tooltip = new Tooltip();
+
 
         this.enableScrollMorph = true; // Flag for scroll-based morphing interaction
 
@@ -572,14 +576,91 @@ export default class Points {
         if (geometry.attributes.aTargetSkinWeight) geometry.attributes.aTargetSkinWeight.needsUpdate = true;
     }
 
-    morphToTarget(targetDataIndex) {
-        // Prevent morph if already in progress (approximate check for 0)
+    morphToTarget(targetDataIndex, duration = MORPH_DURATION) {
         if (this.material.uniforms.uProgress.value > 0.01) {
             console.warn("Morph already in progress. Ignoring request.");
             return;
         }
 
-        this._setMorphTargetData(targetDataIndex)
+        const currentIsSkinned = this.points.isSkinnedMesh;
+
+        // If we are currently Skinned (e.g. Armature), we MUST bake the current 
+        // deformed shape into the buffer so the morph starts from "where the points are".
+        // Otherwise, it snaps to Bind Pose (T-Pose) then morphs, which looks ugly.
+        if (currentIsSkinned) {
+            console.log("[Morph] Baking current Skinned Transform to 'aStartPos'...");
+
+            // The 'position' attribute currently holds the Bind Pose (aTargetPos of previous state).
+            // We want to overwrite it with the BAKED WORLD POSITIONS.
+            // But we shouldn't overwrite the original 'aTargetPos' source data if it's shared?
+            // Actually, 'position' is usually a clone or assigned attribute.
+            // Let's assume safely we can write to the current 'position' buffer, 
+            // OR we should write to a temporary buffer that becomes aStartPos.
+
+            // To keep it simple: We use a dedicated buffer for 'aStartPos' if we need to bake.
+            // Or we check if we can bake into the current 'position' attribute.
+
+            // Logic:
+            // 1. Calculate Baked Positions (CPU) -> write to 'aBakedPos' (new buffer?)
+            //    Or just write directly into the geometry.attributes.position (if it's a unique buffer).
+            //    Let's check: in _setMorphTargetData, we did: geometry.setAttribute('position', geometry.attributes.aTargetPos);
+            //    So 'position' IS 'aTargetPos' (reference). If we write to 'position', we corrupt the Target Data of the Armature!
+            //    BAD. We must NOT overwrite 'position' directly if it's a ref to morphData.
+
+            // Solution: Clone the current position attribute to create a fresh 'Start' buffer.
+            const bakedAttr = this.points.geometry.attributes.position.clone();
+            this._bakeCurrentTransforms(bakedAttr);
+
+            // Now set this cooked buffer as 'aStartPos'
+            this.points.geometry.setAttribute('aStartPos', bakedAttr);
+
+            // Also set 'position' to this cooked buffer so standard Three.js render (if any? we use shader) matches.
+            // But mainly, the Shader uses 'position' as 'aStartPos' logic? 
+            // Wait, Vertex Shader: "vPosition = position;" ... "vec3 alignedStartPos = position;"
+            // YES. Shader uses 'position' attribute as the Start Position.
+            this.points.geometry.setAttribute('position', bakedAttr);
+
+            // IMPORTANT: Since we baked the skinning, we must DISABLE skinning for the "Start" state
+            // in the shader. The shader checks 'isStartModel' based on 'aStartSizeIsGrid'.
+            // If we leave 'aStartSizeIsGrid' as 0 (Model), the shader tries to skin it AGAIN.
+            // So we must spoof 'aStartSizeIsGrid' to be "Grid" (1.0) or modify shader to "isBaked"?
+            // Or just ensure 'skinInfluence' is 0 for Start?
+            // "aStartSkinWeight" is used. If we set 'aStartSkinWeight' to 0, skinning stops.
+            // Let's Zero out 'aStartSkinWeight' for this transition!
+
+            const emptyWeights = new THREE.BufferAttribute(new Float32Array(bakedAttr.count * 4), 4);
+            this.points.geometry.setAttribute('aStartSkinWeight', emptyWeights);
+
+            // Also, we need to ensure 'isStartModel' logic doesn't apply Model Transforms (Scale/Rot) AGAIN 
+            // if we baked them. 
+            // _bakeCurrentTransforms applies: BindMatrix * Skinned * BindInverse. 
+            // It DOES NOT apply uModelScale/Rot/Pos (I commented that out).
+            // The Vertex Shader applies uModelScale/Rot/Pos AFTER skinning.
+            // So if we keep 'isStartModel' (via aStartSizeIsGrid=0), the shader will:
+            // 1. Skin (Scale=0 influence) -> No Change.
+            // 2. Apply Model Transforms -> YES.
+            // This is correct! We want the baked pose to rotate/scale with the model.
+
+        } else {
+            // Standard behavior for non-skinned starts
+            // The previous target (now current) is the start.
+            // We DO NOT clone, just use the ref.
+            // But wait, 'position' is ALREADY set to 'aTargetPos' (Previous).
+            // And shader uses 'position' as Start.
+            // So we are good.
+            this.points.geometry.setAttribute('aStartSizeIsGrid', this.points.geometry.attributes.aTargetSizeIsGrid);
+        }
+
+        this._setMorphTargetData(targetDataIndex);
+
+        // Ensure aStartIsGrid maps to the PREVIOUS state's ID. 
+        // _setMorphTargetData sets 'aTargetSizeIsGrid'.
+        // We need 'aStartSizeIsGrid' to match the Current (Previous) state.
+        // The Tween onComplete sets aStart = aTarget.
+        // So 'aStartSizeIsGrid' should ALREADY be correct from previous morph finish.
+        // BUT for the BAKED case (Armature -> Root), 'aStartSizeIsGrid' is 0 (Model).
+        // Using baked positions + 0 skin weight + Model Transform = Baked Pose moving with group.
+        // Seems Correct.
 
         // Tween Uniforms
         const morphData = this._getMorphData(targetDataIndex);
@@ -595,12 +676,12 @@ export default class Points {
                         uProp.value = targetVal;
                     } else if (typeof targetVal === 'number') {
                         new TWEEN.Tween(uProp)
-                            .to({ value: targetVal }, MORPH_DURATION)
+                            .to({ value: targetVal }, duration)
                             .easing(easing)
                             .start();
                     } else if (targetVal && (targetVal.isVector2 || targetVal.isVector3 || targetVal.isColor)) {
                         new TWEEN.Tween(uProp.value)
-                            .to(targetVal, MORPH_DURATION)
+                            .to(targetVal, duration)
                             .easing(easing)
                             .start();
                     }
@@ -613,7 +694,7 @@ export default class Points {
 
 
         new TWEEN.Tween(this.material.uniforms.uProgress)
-            .to({ value: 1.0 }, MORPH_DURATION)
+            .to({ value: 1.0 }, duration)
             .easing(easing)
             .onComplete(() => {
                 let material = this.material;
@@ -623,7 +704,6 @@ export default class Points {
                 // assign all start attribute to current attribute
                 geometry.setAttribute('position', geometry.attributes.aTargetPos); // STOP updating position to avoid bounding box shrinking
 
-                geometry.setAttribute('position', geometry.attributes.aTargetPos);
                 geometry.setAttribute('aStartColor', geometry.attributes.aTargetColor);
                 geometry.setAttribute('aStartSizeIsGrid', geometry.attributes.aTargetSizeIsGrid);
                 geometry.setAttribute('aStartNormal', geometry.attributes.aTargetNormal);
@@ -644,9 +724,7 @@ export default class Points {
                         if (material.uniforms[key]) {
                             const dest = material.uniforms[key].value;
                             const src = morphData.targetUniforms[key].value;
-                            if (dest && dest.isColor) {
-                                dest.set(src);
-                            } else if (dest && dest.copy && typeof dest.copy === 'function') {
+                            if (typeof dest === 'object' && dest.copy) {
                                 dest.copy(src);
                             } else {
                                 material.uniforms[key].value = src;
@@ -666,6 +744,97 @@ export default class Points {
 
             })
             .start();
+    }
+
+    /**
+     * Captures the current visual position of every point (including skinning & model transforms)
+     * and writes it into the provided BufferAttribute.
+     * Used to freeze the current state before morphing away from a Skinned Mesh.
+     */
+    _bakeCurrentTransforms(targetAttribute) {
+        const geometry = this.points.geometry;
+        const positionAttr = geometry.attributes.position; // Bind pose (or last static pos)
+        const skinIndexAttr = geometry.attributes.skinIndex;
+        const skinWeightAttr = geometry.attributes.aStartSkinWeight || geometry.attributes.aTargetSkinWeight;
+
+        // Safety check: Needs skinning data
+        if (!this.points.isSkinnedMesh || !skinIndexAttr || !skinWeightAttr) {
+            // Fallback: Just copy current 'position' if no skinning
+            for (let i = 0; i < positionAttr.count; i++) {
+                targetAttribute.setXYZ(i, positionAttr.getX(i), positionAttr.getY(i), positionAttr.getZ(i));
+            }
+            targetAttribute.needsUpdate = true;
+            return;
+        }
+
+        const skeleton = this.points.skeleton;
+        // Ensure matrices are fresh
+        if (skeleton) skeleton.update();
+
+        const vector = new THREE.Vector3();
+        const bindMatrix = this.points.bindMatrix;
+        const bindMatrixInverse = this.points.bindMatrixInverse;
+
+        const boneMatX = new THREE.Matrix4();
+        const boneMatY = new THREE.Matrix4();
+        const boneMatZ = new THREE.Matrix4();
+        const boneMatW = new THREE.Matrix4();
+        const skinVertex = new THREE.Vector4();
+        const skinned = new THREE.Vector4();
+
+        // Helper to accumulate skin influence
+        const accumulateSkin = (skinnedVec, vertexVec, boneMat, weight) => {
+            if (weight === 0) return;
+            // boneMat * vertexVec * weight
+            const temp = vertexVec.clone().applyMatrix4(boneMat).multiplyScalar(weight);
+            skinnedVec.add(temp);
+        };
+
+        // Iterate all points
+        for (let i = 0; i < positionAttr.count; i++) {
+            // 1. Get Bind Pose Position
+            vector.set(positionAttr.getX(i), positionAttr.getY(i), positionAttr.getZ(i));
+
+            // 2. Apply Skinning
+            const siX = skinIndexAttr.getX(i);
+            const siY = skinIndexAttr.getY(i);
+            const siZ = skinIndexAttr.getZ(i);
+            const siW = skinIndexAttr.getW(i);
+
+            const swX = skinWeightAttr.getX(i);
+            const swY = skinWeightAttr.getY(i);
+            const swZ = skinWeightAttr.getZ(i);
+            const swW = skinWeightAttr.getW(i);
+
+            skinVertex.set(vector.x, vector.y, vector.z, 1.0);
+            skinVertex.applyMatrix4(bindMatrix);
+
+            skinned.set(0, 0, 0, 0);
+
+            // Bone X
+            boneMatX.fromArray(skeleton.boneMatrices, siX * 16);
+            accumulateSkin(skinned, skinVertex, boneMatX, swX);
+
+            // Bone Y
+            boneMatY.fromArray(skeleton.boneMatrices, siY * 16);
+            accumulateSkin(skinned, skinVertex, boneMatY, swY);
+
+            // Bone Z
+            boneMatZ.fromArray(skeleton.boneMatrices, siZ * 16);
+            accumulateSkin(skinned, skinVertex, boneMatZ, swZ);
+
+            // Bone W
+            boneMatW.fromArray(skeleton.boneMatrices, siW * 16);
+            accumulateSkin(skinned, skinVertex, boneMatW, swW);
+
+            // Back to local space
+            skinVertex.copy(skinned).applyMatrix4(bindMatrixInverse);
+            vector.set(skinVertex.x, skinVertex.y, skinVertex.z);
+
+            targetAttribute.setXYZ(i, vector.x, vector.y, vector.z);
+        }
+
+        targetAttribute.needsUpdate = true;
     }
 
     playAnimation(clipName, duration = 0.5, loop = true) {
@@ -1406,9 +1575,11 @@ export default class Points {
 
                 // Get the target force for this state
                 const morphData = this._getMorphData(currentMorphIndex);
-                const targetForce = (morphData && morphData.targetUniforms && morphData.targetUniforms.uAttractionForce)
+                const baseTargetForce = (morphData && morphData.targetUniforms && morphData.targetUniforms.uAttractionForce)
                     ? morphData.targetUniforms.uAttractionForce.value
                     : 0.0;
+
+                const targetForce = this.forceDisableAttraction ? 0.0 : baseTargetForce;
 
                 if (isOver) {
                     // Inside the model: Target force is 0.0
