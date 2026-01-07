@@ -209,8 +209,8 @@ const getInteractionConfig = (scene, objectMap, stats) => {
             const speed = 1 + (progress * progress * 20); // 1 deg/frame to 21 deg/frame
             currentRotation += speed;
 
-            if (scene.cursorInformer) {
-                scene.cursorInformer.style.transform = `rotate(${currentRotation}deg)`;
+            if (scene.cursorInformerIcon) {
+                scene.cursorInformerIcon.style.transform = `rotate(${currentRotation}deg)`;
             }
 
             gravityAnimFrame = requestAnimationFrame(animateGravity);
@@ -227,8 +227,8 @@ const getInteractionConfig = (scene, objectMap, stats) => {
     };
 
     const resetInformerIcon = () => {
-        if (scene.cursorInformer) {
-            scene.cursorInformer.style.transform = `rotate(0deg)`;
+        if (scene.cursorInformerIcon) {
+            scene.cursorInformerIcon.style.transform = `rotate(0deg)`;
         }
     };
 

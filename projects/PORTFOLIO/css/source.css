@@ -352,8 +352,20 @@ body::-webkit-scrollbar {
     /* Keep this 0% so JS controls the height */
     height: 0%;
 
-    /* Optional: Smooth out the color changes if you animate it later */
-    transition: height 0.1s linear;
+    /* Smooth transition matching MORPH_DURATION (1.5s) */
+    transition: height 1.5s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.3s ease;
+}
+
+/* Morph Active State */
+body.morph-active .progress_time-line {
+    background-color: #ffffff;
+    /* Flash white/bright during morph */
+    box-shadow: 0 0 15px rgba(255, 255, 255, 1.0);
+}
+
+body.morph-active {
+    cursor: progress;
+    /* Show progress cursor */
 }
 
 .progresbar_dot-1,

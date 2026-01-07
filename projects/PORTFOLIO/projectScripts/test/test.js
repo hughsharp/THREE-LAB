@@ -236,10 +236,25 @@ function handleKeyboardAnimations(scene) {
     });
 }
 
+import { togglePointsEnvironment } from '../scenario/scenarioUtility.js';
+
+// --- ACT 5: POINTS ENVIRONMENT TOGGLE ---
+function handleAct5(scene) {
+    const button5 = document.getElementById('act-button-5');
+    if (!button5) return;
+
+    button5.addEventListener('click', () => {
+        console.log("ACT 5: Toggle Points Environment (OFF)");
+        togglePointsEnvironment(scene, false);
+        updateStory("Returning to Room Environment...");
+    });
+}
+
 export function initActButton(scene, clock, exceptions = []) {
     handleAct1(scene, clock, exceptions);
     handleAct2(scene, clock);
     handleAct3(scene);
     handleAct4(scene);
+    handleAct5(scene);
     handleKeyboardAnimations(scene);
 }

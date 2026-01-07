@@ -43,7 +43,13 @@ export const vertexShader = `
     uniform vec3 uGridForward;
     uniform float uModelVibFactor;
     uniform float uModelPointSizeFactor;
+
     uniform float uHoverPointScaleFactor;
+    // Attraction
+    uniform float uAttractionForce;
+    uniform float uIsArmatureState;
+    uniform float uAttractionRefSize;
+    uniform float uAttractionRadius;
 
     // COLOR SUPPORT
     // Color
@@ -288,19 +294,14 @@ export const vertexShader = `
         float boostEnd = 20.0;
         
         float boostFactor = 1.0;
-        if (dist < boostEnd) {
-             // 1.0 at boostEnd, 0.0 at 0.0 (Wait, we want max boost at 0).
-             // Let's use smoothstep.
-             // smoothstep(boostEnd, boostStart, dist) -> 
-             // if dist == boostEnd -> 0.0
-             // if dist == boostStart -> 1.0
+        if (dist < boostEnd && uIsArmatureState < 0.5) {
              float t = smoothstep(boostEnd, boostStart, dist);
              boostFactor = 1.0 + t; // Grows from 1.0 to 2.0
         }
         computedSize *= boostFactor;
 
         // Apply specialized scale for the grid point under hover (Smooth)
-        if (vIsGrid > 0.5) {
+        if (vIsGrid > 0.5 && uIsArmatureState < 0.5) {
              // Smooth transition: Full scale at 0 distance, normal scale at 15px distance
              float hoverScaleT = smoothstep(15.0, 0.0, distStable);
              float targetScale = mix(1.0, uHoverPointScaleFactor, hoverScaleT);
@@ -310,12 +311,41 @@ export const vertexShader = `
         // --- Repulsion ---
         // Only repulse if we are outside the "lock" zone (minInteractionDist)
         // This ensures points we are trying to catch don't run away.
+        // --- Attraction (Armature Only) ---
+        if (uIsArmatureState > 0.5) {
+             float attractRadius = uAttractionRadius; // Tunable radius
+             float exclusionRadius = 30.0; // Don't pull if directly over the model
+             if (dist < attractRadius && dist > exclusionRadius) {
+                 // Strength: 0 at edge, 1 near center (but outside interaction dist)
+                 float attStrength = smoothstep(attractRadius, exclusionRadius, dist);
+                 
+                 // Mass Effect: Smaller points = Stronger suction (Inverse Size)
+                 // Squaring the factor to exaggerate the difference
+                 // Small points get MUCH stronger, big points get weaker.
+                 float rawMass = uAttractionRefSize / max(1.0, computedSize); // Uniform controlled ref size
+                 float massFactor = pow(rawMass, 4.0);
+                 
+                 // Direction: Towards mouse (negative dir)
+                 vec2 attractDir = -normalize(dir);
+                 if (length(dir) < 0.001) attractDir = vec2(0.0);
+                 
+                 // Calculate potential displacement magnitude
+                 float displacementMag = attStrength * uAttractionForce * massFactor;
+                 
+                 // Clamp to avoid overshooting (don't pull past the min interaction distance)
+                 float maxDisplacement = max(0.0, dist - minInteractionDist);
+                 displacementMag = min(displacementMag, maxDisplacement);
+
+                 screenPos += attractDir * displacementMag;
+             }
+        }
+
         // --- Repulsion ---
         // Smooth Repulsion with Inner Fade
         // We want 0 repulsion at center (so we can click/catch), 
         // Max repulsion in the ring, 0 repulsion at outer edge.
         
-        if (dist < uHoverRadius) {
+        if (dist < uHoverRadius && uIsArmatureState < 0.5) {
             // Outer Falloff (0 at radius, 1 at center)
             float outerFactor = smoothstep(uHoverRadius, 0.0, dist);
             
@@ -334,13 +364,11 @@ export const vertexShader = `
             vec2 offset = pushDir * strength * maxPush;
             
             screenPos += offset;
-            
-            screenPos += offset;
-            
-            // Converting screenPos back to clip space for output
-            vec2 newNdc = (screenPos / uResolution - 0.5) * 2.0;
-            gl_Position.xy = newNdc * gl_Position.w;
         }
+
+        // Converting screenPos back to clip space for output (Apply Attraction OR Repulsion)
+        vec2 newNdc = (screenPos / uResolution - 0.5) * 2.0;
+        gl_Position.xy = newNdc * gl_Position.w;
 
         // --- Dynamic Texture Animation (Hover Effect) ---
         // Reuse pre-calculated variables:
@@ -390,7 +418,31 @@ export const vertexShader = `
         vTextureIndex = floor(mod((aStableRandom * 32.0) + steppedTime + baseOffset, 32.0));
 
         vClipPos = gl_Position;
-        gl_PointSize = min(320.0, computedSize * uPixelRatio * (20.0 / -mvPosition.z));
+
+        // --- X-Axis Attenuation (Armature State) ---
+        // "Back to x - axis"
+        // "Front points unaffected (1.0), back points greatly reduced (0.1)"
+        float depthFactor = 1.0;
+        if (uIsArmatureState > 0.5) {
+            float xVal = morphedPos.x;
+            // Adjusted Range:
+            // We want the positive X (Front?) to hold 1.0 size longer.
+            // Earlier we used -30 to 30, so even X=20 was scaled down to 0.8.
+            // Now: -30 (Small) to 10.0 (Full Size). 
+            // Any point > 10.0 will be clamped to 1.0 by smoothstep.
+            float minX = -35.0; // Deepest point gets small
+            float maxX = 10.0;  // Threshold for full size
+            
+            // Normalize X
+            float t = smoothstep(minX, maxX, xVal); 
+            
+            // Map to size factor: 
+            // Min X -> 0.1 size
+            // Max X -> 1.0 size
+            depthFactor = mix(0.1, 1.0, t);
+        }
+
+        gl_PointSize = min(320.0, computedSize * uPixelRatio * (20.0 / -mvPosition.z) * depthFactor);
     }
 `;
 
@@ -418,6 +470,8 @@ export const fragmentShader = `
     uniform vec3 uLightDir; 
     uniform float uLightStrength;
     uniform float uSizeThreshold;
+    uniform float uIsChaos;
+    uniform float uIsArmatureState;
     varying float vStableRandom; // Received from vertex
 
     // COLOR SUPPORT
@@ -427,8 +481,13 @@ export const fragmentShader = `
         // hide entire point if its computed size (from vertex) is below threshold
         if (vComputedSize < uSizeThreshold) discard;
 
+        // ... (Logic remains unchanged, just ensuring no syntax errors or undeclared vars)
+        // Since I cannot see the "middle" lines in this Replace call, using context carefully.
+        // Actually, the previous Replace replaced the WHOLE main function block almost.
+        // I will just put back the original end block.
+        
         // --- Texture Rotation ---
-        // Use vertex index to create a pseudo-random rotation speed which is STABLE across morphs
+         // Use vertex index to create a pseudo-random rotation speed which is STABLE across morphs
         float speed = 0.5 + fract(sin(vStableRandom * 123.456) * 43758.5453) * 1.5;
         
         // Convert Clip Space to Screen Space (pixels)
@@ -437,7 +496,8 @@ export const fragmentShader = `
         vec2 mouseScreen = (uMouseNDC * 0.5 + 0.5) * uResolution;
         
         float dist = distance(screenPos, mouseScreen);
-        float speedMultiplier = 1.0 + smoothstep(uHoverRadius, 0.0, dist) * 1.2;
+        float boostStrength = (1.0 - smoothstep(0.0, 1.0, uIsArmatureState)); 
+        float speedMultiplier = 1.0 + smoothstep(uHoverRadius, 0.0, dist) * 1.2 * boostStrength;
         
         float angle = iTime * speed * uBaseRotateSpeed * speedMultiplier;
         
@@ -480,6 +540,18 @@ export const fragmentShader = `
         // ambient floor so points never go completely black.
         float lightIntensity = max(0.05, dot(vNormal, lightDirection) * uLightStrength);
 
+        // --- Twinkle Effect (Chaos State Only) ---
+        // Randomized speed and phase for each star
+        float twinkleSpeed = 1.0 + fract(vStableRandom * 123.45) * 5.0; 
+        float twinkleVal = 0.5 + 0.5 * sin(iTime * twinkleSpeed + vStableRandom * 100.0);
+        // Make it sharper (blink)
+        twinkleVal = pow(twinkleVal, 2.0); 
+        // Range: 0.2 to 1.5 (boost brightness a bit when twinkling)
+        float twinkleFactor = 0.2 + 1.3 * twinkleVal;
+        
+        // Blend based on uIsChaos
+        lightIntensity = mix(lightIntensity, lightIntensity * twinkleFactor, uIsChaos);
+
         // --- Dynamic Brightness Adjustment ---
         // Reduce brightness on the left (Light BG) to maintain contrast (Dark points on Light BG)
         // Increase brightness on the right (Dark BG)
@@ -520,7 +592,8 @@ export const fragmentShader = `
         
         vec3 hoverColor = mix(gridHoverColor, modelHoverColor, isModel);
         
-        float colorMix = smoothstep(uHoverRadius, 0.0, dist);
+        float boostStrengthColor = (1.0 - smoothstep(0.0, 1.0, uIsArmatureState));
+        float colorMix = smoothstep(uHoverRadius, 0.0, dist) * boostStrengthColor;
         finalColor = mix(finalColor, hoverColor * lightIntensity, colorMix);
 
         gl_FragColor = vec4(finalColor, 1.0);

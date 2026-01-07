@@ -7,7 +7,8 @@ const heroGLB = 'josh-wave5.glb'
 const avatarGLB = 'avatar1.glb'
 // const sprite = 'spriteX2.webp'
 const sprite = 'spark1.png'
-const spriteSheet = 'spritex256.webp'
+const spriteSheet = 'spriteSheet.png'
+const spriteSheetIcon = 'spriteSheetx025.png'
 async function loadResources() {
     const resources = {
         roomModel: null,
@@ -15,7 +16,9 @@ async function loadResources() {
         avatarModel: null,
         environmentMap: null,
         textures: [],
-        sprite: null
+        sprite: null,
+        spriteSheet: null,
+        spriteSheetIcon: null
     };
 
     // Register files for precise progress scaling
@@ -144,7 +147,20 @@ async function loadResources() {
             }
         );
     });
-    await Promise.all([loadGLTF, loadAvatarModel, loadHDR, loadSprite, loadSpriteSheet, loadHeroModel]);
+    //add loader for spriteSheetIcon (Tooltip)
+    const loadSpriteSheetIcon = new Promise((resolve) => {
+        textureLoader.load(
+            './textures/' + spriteSheetIcon,
+            (texture) => {
+                resources.spriteSheetIcon = texture;
+                resolve();
+            },
+            (xhr) => {
+                handleProgress(spriteSheetIcon, xhr.loaded, xhr.total);
+            }
+        );
+    });
+    await Promise.all([loadGLTF, loadAvatarModel, loadHDR, loadSprite, loadSpriteSheet, loadHeroModel, loadSpriteSheetIcon]);
     return resources;
 }
 

@@ -1,11 +1,15 @@
 import * as THREE from 'three';
 import Stats from 'three/addons/libs/stats.module.js';
 
-export function setupSCR(domElement = undefined, fogEnabled = false) { //Scene Camera Renderer
+export function setupSCR(options = {}) { //Scene Camera Renderer
+    const domElement = options.domElement || undefined;
+    const fogEnabled = options.fogEnabled || false;
+    const alpha = options.alpha || false;
+
     // --- 1. Determine Parent Element and Size ---
     let parentWidth, parentHeight;
     const parentElement = domElement || document.body;
-
+    console.log('Parent Element:', parentElement);
     if (domElement) {
         const rect = domElement.getBoundingClientRect();
         parentWidth = rect.width;
@@ -67,7 +71,7 @@ export function setupSCR(domElement = undefined, fogEnabled = false) { //Scene C
         antialias: true,
         powerPreference: "high-performance",
         stencil: false,
-        alpha: false
+        alpha: alpha
     });
     renderer.name = 'renderer';
     renderer.shadowMap.enabled = true;

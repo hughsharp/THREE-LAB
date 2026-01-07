@@ -1,8 +1,9 @@
 import * as THREE from 'three';
 import { getSpriteInfo } from './spriteMapping.js';
+import { resources } from '../resources/loadResources.js';
 
 export class Tooltip {
-    constructor() {
+    constructor(scene) { // Added scene parameter
         this.tooltip = document.createElement('div');
         this.tooltip.style.position = 'absolute';
         this.tooltip.style.padding = '12px 16px';
@@ -25,7 +26,90 @@ export class Tooltip {
 
         this.lastHoveredIndex = -1;
         this.lastTooltipRefString = null;
+
+        // --- CSS 3D Icon Setup ---
+        this.iconSize = 32;
+
+        // Internal DOM state for rotation
+        this.rotX = 0;
+        this.rotY = 0;
+
+        this.isAnimating = false;
+        this._animateIcon = this._animateIcon.bind(this);
     }
+
+    _createCubeDOM() {
+        const container = document.createElement('div');
+        container.style.width = this.iconSize + 'px';
+        container.style.height = this.iconSize + 'px';
+        container.style.position = 'relative';
+        container.style.perspective = '800px';
+
+        const cube = document.createElement('div');
+        cube.style.width = '100%';
+        cube.style.height = '100%';
+        cube.style.position = 'absolute';
+        cube.style.transformStyle = 'preserve-3d';
+        this.cubeDOM = cube;
+
+        const faces = ['front', 'back', 'right', 'left', 'top', 'bottom'];
+        const transformMap = {
+            'front': `rotateY(0deg) translateZ(${this.iconSize / 2}px)`,
+            'back': `rotateY(180deg) translateZ(${this.iconSize / 2}px)`,
+            'right': `rotateY(90deg) translateZ(${this.iconSize / 2}px)`,
+            'left': `rotateY(-90deg) translateZ(${this.iconSize / 2}px)`,
+            'top': `rotateX(90deg) translateZ(${this.iconSize / 2}px)`,
+            'bottom': `rotateX(-90deg) translateZ(${this.iconSize / 2}px)`
+        };
+
+        this.faceElements = [];
+
+        faces.forEach(face => {
+            const el = document.createElement('div');
+            el.style.position = 'absolute';
+            el.style.width = this.iconSize + 'px';
+            el.style.height = this.iconSize + 'px';
+            el.style.backfaceVisibility = 'hidden'; // Optional: or 'visible' if transparent
+            // Apply Sprite Texture
+            if (resources.spriteSheetIcon) {
+                el.style.backgroundImage = `url('${resources.spriteSheetIcon.image.src}')`;
+                el.style.backgroundSize = '800% 400%'; // 8 cols, 4 rows
+                el.style.imageRendering = 'pixelated'; // Keep crisp
+            }
+            el.style.transform = transformMap[face];
+
+            // Border to define edges slightly?
+            // el.style.border = '1px solid rgba(255,255,255,0.1)'; 
+
+            cube.appendChild(el);
+            this.faceElements.push(el);
+        });
+
+        container.appendChild(cube);
+        return container;
+    }
+
+    _animateIcon() {
+        if (!this.tooltip.style.display || this.tooltip.style.display === 'none') {
+            this.isAnimating = false;
+            return;
+        }
+
+        requestAnimationFrame(this._animateIcon);
+
+        this.rotX += 0.02; // Rads
+        this.rotY += 0.03;
+
+        // Convert Rads to Degs for CSS
+        const degX = this.rotX * (180 / Math.PI);
+        const degY = this.rotY * (180 / Math.PI);
+
+        if (this.cubeDOM) {
+            this.cubeDOM.style.transform = `rotateX(${degX}deg) rotateY(${degY}deg)`;
+        }
+    }
+
+    // Removed renderIcon(renderer) - Not needed for CSS
 
     _getPointInfo(points, material, idx, camera, rawMouse) {
         if (!points.geometry.attributes.aStableRandom) return null;
@@ -178,7 +262,7 @@ export class Tooltip {
 
         // Raycasting Logic
         const currentThreshold = raycaster.params.Points.threshold;
-        raycaster.params.Points.threshold = 0.5;
+        raycaster.params.Points.threshold = 1.0;
 
         // Fix for Offset Raycasting:
         // Because the Shader applies 'uModelScreenOffset' (2D shift),
@@ -198,8 +282,20 @@ export class Tooltip {
         raycaster.setFromCamera(correctedMouse, camera);
 
         const pointIntersects = raycaster.intersectObject(points);
+        let idx = -1;
+
         if (pointIntersects.length > 0) {
-            const idx = pointIntersects[0].index;
+            idx = pointIntersects[0].index;
+        } else if (points.geometry.morphCurrentIndex === 2 && points.parentInstance && points.parentInstance.model) {
+            // AREA HOVER CHECK: If we missed individual points but we are in Armature state,
+            // check against the hidden proxy mesh for the "area".
+            const modelIntersects = raycaster.intersectObject(points.parentInstance.model, true);
+            if (modelIntersects.length > 0) {
+                idx = points.geometry.lastClosestIndex || 0;
+            }
+        }
+
+        if (idx !== -1) {
             const info = this._getPointInfo(points, material, idx, camera, rawMouse);
 
             if (this.lastHoveredIndex !== idx) {
@@ -220,16 +316,61 @@ export class Tooltip {
                 const descColor = isLeft ? '#bbb' : '#555';
                 const iconColor = isLeft ? '#888' : '#999';
 
+                // Restore Styling (No Transparency/Holes)
                 this.tooltip.style.background = bg;
-                this.tooltip.style.color = fg;
                 this.tooltip.style.border = border;
+                this.tooltip.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
+
+                // Calculate UVs for CSS
+                const bgX = (info.col / 7) * 100;
+                const bgY = (info.row / 3) * 100;
+
+                // Update texture offset on the faces
+                if (this.faceElements) {
+                    this.faceElements.forEach(el => {
+                        el.style.backgroundPosition = `${bgX}% ${bgY}%`;
+                        // Handle filter if needed (Invert for left side?)
+                        el.style.filter = isLeft ? 'invert(1)' : 'none';
+                    });
+                }
 
                 this.tooltip.innerHTML = `
-                        <div style="margin-bottom:4px; font-weight:700; font-size:15px;">${info.name}</div>
-                        <div style="margin-bottom:8px; font-size:11px; color:${iconColor}; text-transform:uppercase; letter-spacing:0.5px;">${info.icon || ''}</div>
-                        <div style="font-size:13px; color:${descColor}; line-height:1.4;">${info.description}</div>
-                    `;
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;">
+                        <div>
+                            <div style="font-weight:700; font-size:15px; margin-bottom:4px; color:${fg};">${info.name}</div>
+                            <div style="font-size:11px; color:${iconColor}; text-transform:uppercase; letter-spacing:0.5px;">${info.icon || ''}</div>
+                        </div>
+                        <div id="tooltip-icon-container" style="
+                            width: ${this.iconSize}px; 
+                            height: ${this.iconSize}px;
+                            /* margin-left:12px; */
+                        "></div>
+                    </div>
+                    <div style="font-size:13px; color:${descColor}; line-height:1.4;">${info.description}</div>
+                `;
+
+                // Append CSS 3D Cube
+                const container = this.tooltip.querySelector('#tooltip-icon-container');
+                if (container) {
+                    if (!this.cubeDOM) {
+                        const cube = this._createCubeDOM();
+                        container.appendChild(cube);
+                    } else {
+                        // Re-append existing (reusing DOM)
+                        // Note: cubeDOM is the inner cube. _createCubeDOM returns the wrapper.
+                        // We need the wrapper.
+                        // Better: just recreate if missing, or store wrapper.
+                        const wrapper = this.cubeDOM.parentElement; // container provided by create
+                        container.appendChild(wrapper);
+                    }
+                }
+
                 this.tooltip.style.display = 'block';
+
+                if (!this.isAnimating) {
+                    this.isAnimating = true;
+                    this._animateIcon();
+                }
 
                 this.lastTooltipRefString = currentRefString;
             }
@@ -240,7 +381,6 @@ export class Tooltip {
             const winW = window.innerWidth;
             const winH = window.innerHeight;
 
-            // Horizontal
             if (x > winW * 0.6) {
                 this.tooltip.style.left = 'auto';
                 this.tooltip.style.right = (winW - x + 20) + 'px';
@@ -249,7 +389,6 @@ export class Tooltip {
                 this.tooltip.style.left = (x + 20) + 'px';
             }
 
-            // Vertical
             if (y > winH * 0.7) {
                 this.tooltip.style.top = 'auto';
                 this.tooltip.style.bottom = (winH - y + 20) + 'px';
@@ -260,9 +399,7 @@ export class Tooltip {
 
         } else {
             if (this.lastHoveredIndex !== -1) {
-                this.tooltip.style.display = 'none';
-                this.lastHoveredIndex = -1;
-                this.lastTooltipRefString = null;
+                this.hide();
             }
         }
         raycaster.params.Points.threshold = currentThreshold;
@@ -272,5 +409,6 @@ export class Tooltip {
         this.tooltip.style.display = 'none';
         this.lastHoveredIndex = -1;
         this.lastTooltipRefString = null;
+        this.isAnimating = false; // Stop loop
     }
 }

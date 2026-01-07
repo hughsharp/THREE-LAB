@@ -11,6 +11,7 @@ import Points from './projectScripts/points/points.js';
 
 import { Raycaster } from './projectScripts/raycast/addRaycaster.js';
 import { RAPIERWORLD } from './projectScripts/rapierPhysics/addRapierWorld.js';
+import { initPointTest } from './projectScripts/test/point-test.js';
 
 import { ConstantUniformsCustomizer } from './projectScripts/utils/addConstantUniform.js'; // Uncomment if needed
 import { resources } from './projectScripts/resources/loadResources.js';
@@ -34,11 +35,13 @@ const progressText = document.getElementById('progress-text');
 const progressBar = document.getElementById('progress-bar');
 
 function assignPresets() {
-    [scene, camera, renderer] = setupSCR();
+    let debug = document.getElementById('debug');
+    [scene, camera, renderer] = setupSCR({});
     orbitControl = setupOrbitControl(scene, camera, renderer, true);
     orbitControl.enableZoom = false;
     // orbitControl.enablePan = false;
     // orbitControl.enabled = false
+    initPointTest(scene);
 }
 
 function localizeConfigs() {
@@ -58,17 +61,17 @@ function localizeConfigs() {
     renderer.shadowMap.enabled = true;
 
     // 3. HDR Environment Load
-    rgbeLoader.load('textures/' + 'peppermint_powerplant_2_1k' + '.hdr', function (texture) {
-        texture.mapping = THREE.EquirectangularReflectionMapping;
-        // scene.environment = texture;
-        scene.environmentIntensity = 0.75;
+    // rgbeLoader.load('textures/' + 'peppermint_powerplant_2_1k' + '.hdr', function (texture) {
+    //     texture.mapping = THREE.EquirectangularReflectionMapping;
+    //     // scene.environment = texture;
+    //     scene.environmentIntensity = 0.75;
 
-        scene.environmentRotation.set(1.17, -1.17, -2.09)
-        scene.environmentRotation.x = -0.04520672934354282;
-        scene.environmentRotation.y = 1.5515547851416993;
-        scene.environmentRotation.z = 0.045198372394982464;
-        // renderer.render(scene, camera); // Let loop handle it
-    });
+    //     scene.environmentRotation.set(1.17, -1.17, -2.09)
+    //     scene.environmentRotation.x = -0.04520672934354282;
+    //     scene.environmentRotation.y = 1.5515547851416993;
+    //     scene.environmentRotation.z = 0.045198372394982464;
+    //     // renderer.render(scene, camera); // Let loop handle it
+    // });
 }
 
 function addWizards() {

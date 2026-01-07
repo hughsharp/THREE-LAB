@@ -41,8 +41,10 @@ const clock = new THREE.Clock();
 const progressText = document.getElementById('progress-text');
 const progressBar = document.getElementById('progress-bar');
 
+
 function assignPresets() {
-    [scene, camera, renderer] = setupSCR();
+    let collectionSection = document.getElementById('section-collections');
+    [scene, camera, renderer] = setupSCR({ alpha: true, domElement: collectionSection });
     orbitControl = setupOrbitControl(scene, camera, renderer, true);
     orbitControl.enableZoom = false;
     scene.TWEEN = TWEEN;
@@ -50,11 +52,11 @@ function assignPresets() {
 
 function localizeConfigs() {
     // 1. Camera & Orbit Setup
-    camera.position.set(17.4192690499384, 4.136164408312478, 0.015309904980740474);
-    camera.rotation.set(-0.04520672934354282, 1.5515547851416993, 0.045198372394982464);
+    // camera.position.set(17.4192690499384, 4.136164408312478, 0.015309904980740474);
+    // camera.rotation.set(-0.04520672934354282, 1.5515547851416993, 0.045198372394982464);
 
-    orbitControl.target.set(-3.226367634071287, 4.1182097600816245, -0.38158710192007556);
-    orbitControl.update();
+    // orbitControl.target.set(-3.226367634071287, 4.1182097600816245, -0.38158710192007556);
+    // orbitControl.update();
 
     // 2. Renderer Look & Feel
     renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
@@ -66,10 +68,8 @@ function localizeConfigs() {
     renderer.shadowMap.type = THREE.PCFShadowMap;
     renderer.shadowMap.enabled = true;
 
-    // 3. HDR Environment Load
-    // if (resources.environmentMap) scene.environment = resources.environmentMap;
-    // scene.environmentIntensity = 0.75;
-    // scene.environmentIntensity = 0.75;
+    scene.background = null; // Transparent background
+
 }
 
 function addWizards() {
@@ -77,7 +77,7 @@ function addWizards() {
     // helper = new Helper(scene, camera, renderer, orbitControl);
     customizer = new Customizer(scene);
 
-    constantUniformCustomizer = new ConstantUniformsCustomizer(scene);
+    // constantUniformCustomizer = new ConstantUniformsCustomizer(scene);
     initStatus();
 
 }
@@ -91,7 +91,7 @@ async function init() {
     // Ideally we init raycaster BEFORE Points.
 
     // resources = await loadResources();
-    localizeConfigs(); // Contains renderer settings
+    // localizeConfigs(); // Contains renderer settings
 
     raycaster = new Raycaster(scene, camera, renderer);
 
@@ -109,19 +109,30 @@ async function init() {
 
     // 1. Instantiate the Model class
     loadedModel = new Model(scene, camera, renderer, resources);
-
+    renderer.setPixelRatio(1);
     try {
         // 2. Wait for Model Assets & Physics to Load
         await loadedModel.init(progressText, progressBar);
 
+        // --- Points Setup ---
+        // Initialize Points BEFORE running the scenario so it captures the original model state (meshes, transforms)
+        // before scenarioUtility manipulates them (hiding, scaling to 0, etc.)
+        const CAMERA_POSITION = { x: 61.56, y: 2.97, z: 30 };
+        scene.background = undefined; // Ensure background is transparent/handled by Points
+        camera.position.set(CAMERA_POSITION.x, CAMERA_POSITION.y, CAMERA_POSITION.z);
+        pointsApp = new Points(scene, camera, renderer, raycaster, { enableUI: false });
+
         // 3. Run the Intro Scenario
         await runIntroScenario(scene, camera, orbitControl, clock);
+        pointsApp.playIntro(); // Trigger shader "appear" animation by resetting clock
         // setupIntegrityBaseline(scene);
 
     } catch (error) {
         console.error("Fatal Error during Initialization:", error);
         if (progressText) progressText.innerText = "Error Loading";
     }
+
+
 }
 
 function animate() {
@@ -136,7 +147,7 @@ function animate() {
     if (TWEEN) TWEEN.update();
     // Use Points App for rendering (includes Bloom + Scene)
     if (pointsApp) {
-        pointsApp.update();
+        pointsApp.update(false); // don't update TWEEN, handled above
     } else if (renderer && scene && camera) {
         renderer.render(scene, camera);
     }

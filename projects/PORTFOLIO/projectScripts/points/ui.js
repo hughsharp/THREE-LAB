@@ -832,6 +832,236 @@ export function createUI({
         content.appendChild(wrapper);
     })();
 
+    // Attraction Force Control
+    (() => {
+        const wrapper = document.createElement('div');
+        wrapper.style.marginTop = '10px';
+        wrapper.style.marginBottom = '10px';
+
+        const row = document.createElement('div');
+        row.style.display = 'flex';
+        row.style.alignItems = 'center';
+        row.style.justifyContent = 'space-between';
+
+        const initial = (material && material.uniforms && material.uniforms.uAttractionForce) ? material.uniforms.uAttractionForce.value : 0.0;
+
+        const text = document.createElement('span');
+        text.innerText = `Attraction Force: ${initial.toFixed(1)}`;
+        text.style.fontSize = '12px';
+
+        const number = document.createElement('input');
+        number.type = 'number';
+        number.min = '0.0';
+        number.max = '4000.0';
+        number.step = '0.5';
+        number.value = initial.toString();
+        number.style.width = '70px';
+        number.style.marginLeft = '8px';
+
+        row.appendChild(text);
+        row.appendChild(number);
+
+        const resetBtn = document.createElement('button');
+        resetBtn.type = 'button';
+        resetBtn.innerText = 'Reset';
+        resetBtn.style.marginLeft = '6px';
+        resetBtn.style.fontSize = '11px';
+        resetBtn.style.padding = '2px 6px';
+        resetBtn.addEventListener('click', () => setValue(800.0));
+        row.appendChild(resetBtn);
+
+        const input = document.createElement('input');
+        input.type = 'range';
+        input.min = '0.0';
+        input.max = '4000.0';
+        input.step = '0.5';
+        input.value = initial.toString();
+        input.style.width = '100%';
+        input.style.cursor = 'pointer';
+
+        const updateUI = () => {
+            if (material && material.uniforms && material.uniforms.uAttractionForce) {
+                const v = material.uniforms.uAttractionForce.value;
+                text.innerText = `Attraction Force: ${v.toFixed(1)}`;
+                number.value = v;
+                input.value = v;
+            }
+        };
+        uiUpdates.push(updateUI);
+
+        function setValue(v) {
+            const val = parseFloat(v) || 0;
+            text.innerText = `Attraction Force: ${val.toFixed(1)}`;
+            number.value = val;
+            input.value = val;
+            highlightIfChanged(number, val, 800.0);
+            if (material && material.uniforms && material.uniforms.uAttractionForce) {
+                material.uniforms.uAttractionForce.value = val;
+            }
+        }
+
+        input.addEventListener('input', (e) => setValue(e.target.value));
+        number.addEventListener('input', (e) => setValue(e.target.value));
+
+        wrapper.appendChild(row);
+        wrapper.appendChild(input);
+        content.appendChild(wrapper);
+    })();
+
+    // Attraction Mass Ref Size (Stability)
+    (() => {
+        const wrapper = document.createElement('div');
+        wrapper.style.marginTop = '10px';
+        wrapper.style.marginBottom = '10px';
+
+        const row = document.createElement('div');
+        row.style.display = 'flex';
+        row.style.alignItems = 'center';
+        row.style.justifyContent = 'space-between';
+
+        const initial = (material && material.uniforms && material.uniforms.uAttractionRefSize) ? material.uniforms.uAttractionRefSize.value : 15.0;
+
+        const text = document.createElement('span');
+        text.innerText = `Mass Ref Size: ${initial.toFixed(1)}`;
+        text.title = "Lower value = Heavier (More Stable)";
+        text.style.fontSize = '12px';
+
+        const number = document.createElement('input');
+        number.type = 'number';
+        number.min = '1.0';
+        number.max = '100.0';
+        number.step = '0.5';
+        number.value = initial.toString();
+        number.style.width = '70px';
+        number.style.marginLeft = '8px';
+
+        row.appendChild(text);
+        row.appendChild(number);
+
+        const resetBtn = document.createElement('button');
+        resetBtn.type = 'button';
+        resetBtn.innerText = 'Reset';
+        resetBtn.style.marginLeft = '6px';
+        resetBtn.style.fontSize = '11px';
+        resetBtn.style.padding = '2px 6px';
+        resetBtn.addEventListener('click', () => setValue(15.0));
+        row.appendChild(resetBtn);
+
+        const input = document.createElement('input');
+        input.type = 'range';
+        input.min = '1.0';
+        input.max = '100.0';
+        input.step = '0.5';
+        input.value = initial.toString();
+        input.style.width = '100%';
+        input.style.cursor = 'pointer';
+
+        const updateUI = () => {
+            if (material && material.uniforms && material.uniforms.uAttractionRefSize) {
+                const v = material.uniforms.uAttractionRefSize.value;
+                text.innerText = `Mass Ref Size: ${v.toFixed(1)}`;
+                number.value = v;
+                input.value = v;
+            }
+        };
+        uiUpdates.push(updateUI);
+
+        function setValue(v) {
+            const val = parseFloat(v) || 15.0;
+            text.innerText = `Mass Ref Size: ${val.toFixed(1)}`;
+            number.value = val;
+            input.value = val;
+            highlightIfChanged(number, val, 15.0);
+            if (material && material.uniforms && material.uniforms.uAttractionRefSize) {
+                material.uniforms.uAttractionRefSize.value = val;
+            }
+        }
+
+        input.addEventListener('input', (e) => setValue(e.target.value));
+        number.addEventListener('input', (e) => setValue(e.target.value));
+
+        wrapper.appendChild(row);
+        wrapper.appendChild(input);
+        content.appendChild(wrapper);
+    })();
+
+    // Attraction Radius
+    (() => {
+        const wrapper = document.createElement('div');
+        wrapper.style.marginTop = '10px';
+        wrapper.style.marginBottom = '10px';
+
+        const row = document.createElement('div');
+        row.style.display = 'flex';
+        row.style.alignItems = 'center';
+        row.style.justifyContent = 'space-between';
+
+        const initial = (material && material.uniforms && material.uniforms.uAttractionRadius) ? material.uniforms.uAttractionRadius.value : 600.0;
+
+        const text = document.createElement('span');
+        text.innerText = `Attract Radius: ${initial.toFixed(0)}`;
+        text.title = "Range of the suction pull";
+        text.style.fontSize = '12px';
+
+        const number = document.createElement('input');
+        number.type = 'number';
+        number.min = '0.0';
+        number.max = '2000.0';
+        number.step = '10';
+        number.value = initial.toString();
+        number.style.width = '70px';
+        number.style.marginLeft = '8px';
+
+        row.appendChild(text);
+        row.appendChild(number);
+
+        const resetBtn = document.createElement('button');
+        resetBtn.type = 'button';
+        resetBtn.innerText = 'Reset';
+        resetBtn.style.marginLeft = '6px';
+        resetBtn.style.fontSize = '11px';
+        resetBtn.style.padding = '2px 6px';
+        resetBtn.addEventListener('click', () => setValue(600.0));
+        row.appendChild(resetBtn);
+
+        const input = document.createElement('input');
+        input.type = 'range';
+        input.min = '0.0';
+        input.max = '2000.0';
+        input.step = '10';
+        input.value = initial.toString();
+        input.style.width = '100%';
+        input.style.cursor = 'pointer';
+
+        const updateUI = () => {
+            if (material && material.uniforms && material.uniforms.uAttractionRadius) {
+                const v = material.uniforms.uAttractionRadius.value;
+                text.innerText = `Attract Radius: ${v.toFixed(0)}`;
+                number.value = v;
+                input.value = v;
+            }
+        };
+        uiUpdates.push(updateUI);
+
+        function setValue(v) {
+            const val = parseFloat(v) || 0;
+            text.innerText = `Attract Radius: ${val.toFixed(0)}`;
+            number.value = val;
+            input.value = val;
+            highlightIfChanged(number, val, 600.0);
+            if (material && material.uniforms && material.uniforms.uAttractionRadius) {
+                material.uniforms.uAttractionRadius.value = val;
+            }
+        }
+
+        input.addEventListener('input', (e) => setValue(e.target.value));
+        number.addEventListener('input', (e) => setValue(e.target.value));
+
+        wrapper.appendChild(row);
+        wrapper.appendChild(input);
+        content.appendChild(wrapper);
+    })();
+
 
     // --- 3. LIGHTING CONTROLS ---
     const lightTitle = document.createElement('div');
@@ -998,6 +1228,93 @@ export function createUI({
         content.appendChild(wrapper);
     })();
 
+    // --- 4. BLOOM CONTROLS ---
+    const bloomTitle = document.createElement('div');
+    bloomTitle.innerText = "Bloom (Post-Process)";
+    bloomTitle.style.marginTop = "15px";
+    bloomTitle.style.marginBottom = "10px";
+    bloomTitle.style.fontWeight = "bold";
+    content.appendChild(bloomTitle);
+
+    (() => {
+        if (!bloomPass) return;
+
+        const createBloomSlider = (label, property, min, max, step) => {
+            const wrapper = document.createElement('div');
+            wrapper.style.marginBottom = '8px';
+
+            const row = document.createElement('div');
+            row.style.display = 'flex';
+            row.style.alignItems = 'center';
+            row.style.justifyContent = 'space-between';
+
+            const initial = bloomPass[property];
+
+            const text = document.createElement('span');
+            text.innerText = `${label}: ${initial.toFixed(2)}`;
+            text.style.fontSize = '12px';
+
+            const number = document.createElement('input');
+            number.type = 'number';
+            number.min = min;
+            number.max = max;
+            number.step = step;
+            number.value = initial.toString();
+            number.style.width = '70px';
+            number.style.marginLeft = '8px';
+
+            row.appendChild(text);
+            row.appendChild(number);
+
+            const resetBtn = document.createElement('button');
+            resetBtn.type = 'button';
+            resetBtn.innerText = 'Reset';
+            resetBtn.style.marginLeft = '6px';
+            resetBtn.style.fontSize = '11px';
+            resetBtn.style.padding = '2px 6px';
+            resetBtn.addEventListener('click', () => setValue(initial));
+            row.appendChild(resetBtn);
+
+            const input = document.createElement('input');
+            input.type = 'range';
+            input.min = min;
+            input.max = max;
+            input.step = step;
+            input.value = initial.toString();
+            input.style.width = '100%';
+            input.style.cursor = 'pointer';
+
+            const updateUI = () => {
+                const v = bloomPass[property];
+                text.innerText = `${label}: ${v.toFixed(2)}`;
+                number.value = v;
+                input.value = v;
+            };
+            uiUpdates.push(updateUI);
+
+            function setValue(v) {
+                const val = parseFloat(v) || 0;
+                text.innerText = `${label}: ${val.toFixed(2)}`;
+                number.value = val;
+                input.value = val;
+                highlightIfChanged(number, val, initial);
+                bloomPass[property] = val;
+            }
+
+            input.addEventListener('input', (e) => setValue(e.target.value));
+            number.addEventListener('input', (e) => setValue(e.target.value));
+
+            wrapper.appendChild(row);
+            wrapper.appendChild(input);
+            content.appendChild(wrapper);
+        };
+
+        createBloomSlider("Strength", "strength", "0.0", "5.0", "0.01");
+        createBloomSlider("Radius", "radius", "0.0", "2.0", "0.01");
+        createBloomSlider("Threshold", "threshold", "0.0", "1.0", "0.01");
+
+    })();
+
     // Light size boost control
     (() => {
         const wrapper = document.createElement('div');
@@ -1073,7 +1390,7 @@ export function createUI({
     })();
 
 
-    // --- 4. APPEARANCE ---
+    // --- 5. APPEARANCE ---
     const appearTitle = document.createElement('div');
     appearTitle.innerText = "Appearance";
     appearTitle.style.marginTop = "15px";

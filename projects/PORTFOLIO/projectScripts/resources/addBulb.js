@@ -4,8 +4,7 @@ import { linkConstantUniforms } from '../utils/addConstantUniform.js';
 import { BasicGeometries } from '../../configs/setupGeometries.js';
 //import from constant.js
 
-import { bulb } from '../utils/base64Strings.js';
-
+// import { groundVortexFS2 } from '../utils/constant.js';
 import { MorphGeo } from '../utils/MorphGeo.js';
 
 export function addBulb(scene) {
@@ -55,5 +54,8 @@ function createBulb(scene) {
 
     scene.bulb = bulb;
     scene.bulbLight = bulbLight;
+
+
+    //add a plane to the bulb
     return bulb
 }

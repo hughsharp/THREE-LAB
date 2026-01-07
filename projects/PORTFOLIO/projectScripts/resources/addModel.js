@@ -236,7 +236,9 @@ export class Model {
                 ];
                 const notCastShadows = ['Object_1001_1', 'Object_8001', "Object_17"];
 
+                // model.visible = false;
                 this.scene.add(model);
+
 
                 model.getObjectByName('inviMesh').material.visible = false;
 

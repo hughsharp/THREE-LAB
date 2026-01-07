@@ -26,8 +26,8 @@ const container = document.querySelector('#content');
 
 
 function assignPresets() {
-    [scene, camera, renderer] = setupSCR(container);
-    
+    [scene, camera, renderer] = setupSCR({ domElement: container });
+
     orbitControl = setupOrbitControl(scene, camera, renderer);
     // orbitControl.enableZoom = false
 }
@@ -38,22 +38,22 @@ function localizeConfigs() {
 
     orbitControl.target.set(-3.226367634071287, 4.1182097600816245, -0.38158710192007556)
     orbitControl.update();
-    renderer.outputColorSpace = THREE.LinearSRGBColorSpace ;
+    renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
     renderer.toneMappingExposure = 0.25;
     renderer.physicallyCorrectLights = true;
     renderer.toneMapping = THREE.ReinhardToneMapping;
     renderer.shadowMap.type = THREE.BasicShadowMap;
     renderer.shadowMap.enabled = true
     rgbeLoader.load('textures/' + 'peppermint_powerplant_2_1k' + '.hdr', function (texture) {
-            texture.mapping = THREE.EquirectangularReflectionMapping;
-            scene.environment = texture;
-            scene.environmentIntensity = 0.75
-            renderer.render(scene, camera);
+        texture.mapping = THREE.EquirectangularReflectionMapping;
+        scene.environment = texture;
+        scene.environmentIntensity = 0.75
+        renderer.render(scene, camera);
     })
-    
+
 }
 
-function addWizards(){
+function addWizards() {
     stats = setupStats();
     helper = new Helper(scene, camera, renderer, orbitControl);
     customizer = new Customizer(scene);
@@ -63,15 +63,15 @@ function init() {
     assignPresets()
 
     localizeConfigs()
-    world = new RAPIERWORLD(scene,false)
+    world = new RAPIERWORLD(scene, false)
     raycaster = new Raycaster(scene, camera, renderer)
     loadedModel = new Model(scene, camera, renderer); //cost 17fps (43)
     productBalls = addProductBalls(scene)
 
-    
+
     // test()
-    
-    
+
+
     addWizards()
 }
 

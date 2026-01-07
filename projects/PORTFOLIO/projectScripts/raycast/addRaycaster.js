@@ -30,36 +30,43 @@ export class Raycaster {
         // --- Dynamic Element Creation ---
         // 1. Container/Group (Virtual or just shared logic) - handled via separate elements
 
-        // Text
-        const informerText = document.createElement('div');
-        informerText.id = 'cursor-informer-text';
-        informerText.textContent = "INFO HERE";
-        informerText.style.display = 'none'; // Start hidden
-        document.body.appendChild(informerText);
-        this.cursorInformerText = informerText;
-        scene.cursorInformerText = this.cursorInformerText;
-
-        // Wrapper (Handling Position)
-        const informerWrapper = document.createElement('div');
-        informerWrapper.id = 'cursor-informer-wrapper';
-        Object.assign(informerWrapper.style, {
+        // MAIN WRAPPER (everything moves together)
+        const mainWrapper = document.createElement('div');
+        mainWrapper.id = 'cursor-informer-main-wrapper';
+        Object.assign(mainWrapper.style, {
             position: 'fixed',
             top: '0',
             left: '0',
             pointerEvents: 'none',
             zIndex: '99999',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center'
+            display: 'none', // Start hidden
+            // justifyContent: 'center',
+            // alignItems: 'center'
         });
-        document.body.appendChild(informerWrapper);
-        this.cursorInformerWrapper = informerWrapper;
+        document.body.appendChild(mainWrapper);
+        this.cursorInformer = mainWrapper;
+        scene.cursorInformer = this.cursorInformer;
 
-        // Box (Handling Border & Background Color - Stationary)
+        // API
+        this.cursorInformer.show = () => { this.cursorInformer.style.display = 'block'; }
+        this.cursorInformer.hide = () => { this.cursorInformer.style.display = 'none'; }
+
+
+        // Text
+        const informerText = document.createElement('div');
+        informerText.id = 'cursor-informer-text';
+        informerText.textContent = "INFO HERE";
+        // informerText.style.display = 'none'; // Controlled by parent
+        mainWrapper.appendChild(informerText); // Append to wrapper
+        this.cursorInformerText = informerText;
+        scene.cursorInformerText = this.cursorInformerText;
+
+
+        // Box (Handling Border & Background Color - Stationary relative to wrapper)
         const informerBox = document.createElement('div');
         informerBox.id = 'cursor-informer-box';
-        informerBox.style.display = 'none'; // Start hidden
-        informerWrapper.appendChild(informerBox);
+        // informerBox.style.display = 'none'; // Controlled by parent
+        mainWrapper.appendChild(informerBox); // Append to wrapper
         this.cursorInformerBox = informerBox;
         scene.cursorInformerBox = this.cursorInformerBox;
 
@@ -68,8 +75,8 @@ export class Raycaster {
         informerIcon.id = 'cursor-informer-icon';
         informerBox.appendChild(informerIcon);
 
-        this.cursorInformer = informerIcon;
-        scene.cursorInformer = this.cursorInformer;
+        this.informerIcon = informerIcon;
+        scene.cursorInformerIcon = this.informerIcon; // EXPOSE ICON FOR ROTATION
         this.iconSize = size;
 
         this.isHoveringRaycastObject = false;
@@ -140,9 +147,6 @@ export class Raycaster {
         const finalX = event.clientX + offsetX;
         const finalY = event.clientY + offsetY;
 
-        // Debug Log (Temporary - remove after verify)
-        // console.log(`Pointer: ${event.clientX}, ${event.clientY} | Final: ${finalX}, ${finalY}`);
-
         // Update pointer vector for raycasting
         const localX = event.clientX - rect.left;
         const localY = event.clientY - rect.top;
@@ -153,16 +157,13 @@ export class Raycaster {
             this.scene.constantUniform.uMouse.value.set(this.pointer.x, this.pointer.y);
         }
 
-        if (this.cursorInformerWrapper) {
-            this.cursorInformerWrapper.style.transform = `translate(${finalX}px, ${finalY}px)`;
+        // MOVE THE MAIN WRAPPER
+        if (this.cursorInformer) {
+            this.cursorInformer.style.transform = `translate(${finalX}px, ${finalY}px)`;
         }
-
-        if (this.cursorInformerText) {
-            // Position text above the icon (offsetY is top of icon, so move up by text height approx or fixed adjustment)
-            const textY = finalY - 5; // Reduced space to make it closer
-            // Use clientX to center horizontally, textY for vertical position, and combine with translateX(-50%)
-            this.cursorInformerText.style.transform = `translate(${event.clientX}px, ${textY}px) translateX(-50%) translateY(-100%)`;
-        }
+        // Text is inside wrapper, so no need to move it separately (relative positioning handles it)
+        // But if we want specific offset for text... actually we appended it to wrapper.
+        // Let's assume CSS handles relative layout inside wrapper.
     }
 
     onMouseDown(event) {
@@ -187,8 +188,8 @@ export class Raycaster {
     }
 
     updateInformer(image) {
-        if (this.cursorInformer) {
-            this.cursorInformer.style.backgroundImage = `url('${image}')`;
+        if (this.informerIcon) { // Use icon specific ref
+            this.informerIcon.style.backgroundImage = `url('${image}')`;
         }
     }
 
@@ -199,8 +200,8 @@ export class Raycaster {
         const intersects = this.raycaster.intersectObjects(this.scene.raycastObjects, true);
 
         if (intersects.length > 0) {
-            this.cursorInformer.style.opacity = '1';
-            if (this.cursorInformerText) this.cursorInformerText.style.opacity = '1';
+            // this.cursorInformer.style.opacity = '1'; // Handled by show()
+            // if (this.cursorInformerText) this.cursorInformerText.style.opacity = '1';
 
             this.currentIntersection = intersects[0];
             this.currentObject = intersects[0].object.ignoreRaycast ? intersects[0].object.parent : intersects[0].object;
@@ -247,13 +248,13 @@ export class Raycaster {
         if (this.cursorInformer && this.cursorInformer.parentNode) {
             this.cursorInformer.parentNode.removeChild(this.cursorInformer);
         }
-        if (this.cursorInformerText && this.cursorInformerText.parentNode) {
-            this.cursorInformerText.parentNode.removeChild(this.cursorInformerText);
-        }
+        // Text and Box are children of cursorInformer, so they get removed automatically.
 
         this.cursorInformer = null;
+        this.informerIcon = null;
         if (this.scene) {
             this.scene.cursorInformer = null;
+            this.scene.cursorInformerIcon = null;
             this.scene.raycaster = null;
         }
         console.log('Raycaster disposed');
@@ -436,29 +437,55 @@ export function adjustNebula(scene) {
 }
 
 // --- Informer Helpers (Moved from loadedModelRaycast.js) ---
+// --- Informer Helpers (Moved from loadedModelRaycast.js) ---
 export function setInformerBg(scene, b64String, text = "INFO HERE") {
-    if (!scene.cursorInformer) return;
+    // 0. CHECK ENABLED FLAG: Do not show if explicit disabled
+    if (scene.cursorInformerEnabled === false) return;
 
-    // Set Image on the Icon (Rotatable element)
-    scene.cursorInformer.style.backgroundImage = `url('data:image/svg+xml;base64,${b64String}')`;
+    // 1. UPDATE IMAGE (via Icon)
+    if (scene.cursorInformerIcon) {
+        scene.cursorInformerIcon.style.backgroundImage = `url('data:image/svg+xml;base64,${b64String}')`;
+    }
 
-    // Set Visibility on the Box (Stationary container)
+    // 2. SHOW MAIN WRAPPER
+    if (scene.cursorInformer && scene.cursorInformer.show) {
+        scene.cursorInformer.show();
+    }
+    // Fallback if needed (though cleaner to rely on API)
+    else if (scene.cursorInformer) {
+        scene.cursorInformer.style.display = 'block';
+    }
+
+    // 3. SHOW BOX (if still used separately inside wrapper, default display might be needed)
     if (scene.cursorInformerBox) {
         scene.cursorInformerBox.style.display = 'flex';
     }
 
+    // Reset text before updating
+    if (scene.cursorInformerText) {
+        scene.cursorInformerText.style.display = 'none';
+        scene.cursorInformerText.style.opacity = '0';
+    }
+
+    // 4. UPDATE TEXT
     if (scene.cursorInformerText) {
         scene.cursorInformerText.innerHTML = text;
         scene.cursorInformerText.style.display = 'block';
+        scene.cursorInformerText.style.opacity = '1'; // Ensure visible
     }
 }
 
 export function hideInformer(scene) {
-    if (scene.cursorInformerBox) {
-        scene.cursorInformerBox.style.display = 'none';
-        scene.cursorInformer.style.backgroundImage = 'none';
+    // HIDE MAIN WRAPPER
+    if (scene.cursorInformer && scene.cursorInformer.hide) {
+        scene.cursorInformer.hide();
+    } else if (scene.cursorInformer) {
+        scene.cursorInformer.style.display = 'none';
     }
-    if (scene.cursorInformerText) {
-        scene.cursorInformerText.style.display = 'none';
+
+    // Optional: Reset Icon
+    if (scene.cursorInformerIcon) {
+        scene.cursorInformerIcon.style.backgroundImage = 'none';
+        scene.cursorInformerIcon.style.transform = 'rotate(0deg)'; // Good practice to reset rotation too
     }
 }

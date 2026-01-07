@@ -36,7 +36,7 @@ const progressBar = document.getElementById('progress-bar');
 
 function assignPresets() {
     const container = document.getElementById('content');
-    [scene, camera, renderer] = setupSCR(container);
+    [scene, camera, renderer] = setupSCR({ domElement: container });
     orbitControl = setupOrbitControl(scene, camera, renderer, true);
     orbitControl.enableZoom = true;
     // orbitControl.enablePan = false;

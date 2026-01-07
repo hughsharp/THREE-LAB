@@ -286,9 +286,9 @@ export function addFireflies(scene, amount = 600) {
     // fireflies.position.x = -10
 
 
-    const detector = new THREE.Object3D();
-    detector.name = "firefliesDetector";
-    // detector.add(fireflies);
-    scene.add(detector);
+    // const detector = new THREE.Object3D();
+    // detector.name = "firefliesDetector";
+    // // detector.add(fireflies);
+    // scene.add(detector);
     return fireflies;
 }

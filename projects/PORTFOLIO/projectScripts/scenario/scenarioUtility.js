@@ -27,7 +27,8 @@ const BOOK_START_DELAY = 100;
 export function initializeScenario(scene, orbitControl, clock) {
     clock.stop();
     // if (orbitControl) orbitControl.update();
-
+    //hide the div of scene.cursorInformer
+    // scene.cursorInformer.style.display = "none";
     const objectMap = createSceneMap(scene);
     prepareObjectsForEntry(scene, objectMap);
 
@@ -211,7 +212,7 @@ function tweenBlackhole(scene, objectMap, obj, duration) {
 
 function prepareObjectsForEntry(scene, objectMap) {
     const planeSky = objectMap.get("planeSky");
-    // if (planeSky) planeSky.visible = false;
+    if (planeSky) planeSky.visible = false;
 
     objectMap.forEach((obj, name) => {
         if (/^dragonBall\d+Stars$/.test(name)) obj.visible = false;
@@ -298,7 +299,7 @@ function tweenSpecificObject(obj, duration, enableSpin = false, easing = TWEEN.E
 // --- UTILS & HELPERS ---
 
 function getRemainingObjects(scene) {
-    const excludedNames = ["moon", "floor", "planeSky", "blackholeScene"];
+    const excludedNames = ["moon", "floor", "planeSky", "blackholeScene", "PointsCloud"];
     const targets = [];
     scene.children.forEach((child) => {
         if (child.isCamera) return
@@ -358,18 +359,12 @@ export function handleUserEntry(scene) {
         if (progressText) progressText.innerText = "Ready";
         if (progressBar) progressBar.parentElement.style.display = 'none';
 
-        if (enterButton) {
-            enterButton.style.display = 'inline-block';
-            enterButton.addEventListener('click', async () => {
-                if (loadingContainer) {
-                    loadingContainer.style.opacity = '0';
-                    setTimeout(() => { loadingContainer.style.display = 'none'; }, 500);
-                }
-                resolve();
-            }, { once: true });
-        } else {
-            resolve();
+        // Auto-Enter Logic: Simulate immediate click
+        if (loadingContainer) {
+            loadingContainer.style.opacity = '0';
+            setTimeout(() => { loadingContainer.style.display = 'none'; }, 500);
         }
+        resolve();
     });
 }
 
@@ -556,7 +551,7 @@ export function activateBulb(scene, objectMap, tweenDuration = 5000) {
     let targetIntensity = 1000;
     let targetDistance = 25;
     let targetScale = new THREE.Vector3(1, 1, 1);
-    let targetPosition = new THREE.Vector3(-1.5, 8.5, -0.30);
+    let targetPosition = new THREE.Vector3(-1.5, 9.2, -0.30);
     let targetRotation = bulb.rotation.clone();
 
     // Safety check for light object, assuming it's named 'bulbLight'
@@ -966,4 +961,62 @@ export function callMjolnir(scene, tweenDuration = 2000) {
     } else {
         console.warn("Mjolnir mesh or rapierBody not found");
     }
-}   
+}
+
+export function togglePointsEnvironment(scene, enable = true) {
+    const container = scene.domElement;
+    const camera = scene.camera
+    const orbitControl = scene.OrbitControls;
+    if (enable) {
+        // --- ENABLE STATE ---
+        // 0. Disable Informer Logic Global Flag
+        scene.cursorInformerEnabled = false;
+
+        // 1. Hide Informer Wrapper
+        if (scene.cursorInformer && scene.cursorInformer.hide) {
+            scene.cursorInformer.hide();
+        } else if (scene.cursorInformer) {
+            scene.cursorInformer.style.display = 'none';
+        }
+
+        // 2. Change Scene State
+        scene.scenarioState = 'points';
+
+        // 3. Apply Background Gradient
+        if (container) {
+            container.style.background = 'linear-gradient(to right, rgb(83.137% 83.137% 83.137%) 0%, rgb(78.408% 78.408% 78.408%) 1.5625%, rgb(73.68% 73.68% 73.68%) 3.125%, rgb(68.951% 68.951% 68.951%) 4.6875%, rgb(64.222% 64.222% 64.222%) 6.25%, rgb(60.35% 60.35% 60.35%) 7.8125%, rgb(56.478% 56.478% 56.478%) 9.375%, rgb(52.606% 52.606% 52.606%) 10.9375%, rgb(48.734% 48.734% 48.734%) 12.5%, rgb(45.609% 45.609% 45.609%) 14.0625%, rgb(42.483% 42.483% 42.483%) 15.625%, rgb(39.358% 39.358% 39.358%) 17.1875%, rgb(36.232% 36.232% 36.232%) 18.75%, rgb(33.75% 33.75% 33.75%) 20.3125%, rgb(31.268% 31.268% 31.268%) 21.875%, rgb(28.786% 28.786% 28.786%) 23.4375%, rgb(26.305% 26.305% 26.305%) 25%, rgb(24.372% 24.372% 24.372%) 26.5625%, rgb(22.439% 22.439% 22.439%) 28.125%, rgb(20.506% 20.506% 20.506%) 29.6875%, rgb(18.573% 18.573% 18.573%) 31.25%, rgb(17.101% 17.101% 17.101%) 32.8125%, rgb(15.63% 15.63% 15.63%) 34.375%, rgb(14.158% 14.158% 14.158%) 35.9375%, rgb(12.686% 12.686% 12.686%) 37.5%, rgb(11.596% 11.596% 11.596%) 39.0625%, rgb(10.505% 10.505% 10.505%) 40.625%, rgb(9.414% 9.414% 9.414%) 42.1875%, rgb(8.323% 8.323% 8.323%) 43.75%, rgb(7.542% 7.542% 7.542%) 45.3125%, rgb(6.76% 6.76% 6.76%) 46.875%, rgb(5.978% 5.978% 5.978%) 48.4375%, rgb(5.196% 5.196% 5.196%) 50%, rgb(4.658% 4.658% 4.658%) 51.5625%, rgb(4.121% 4.121% 4.121%) 53.125%, rgb(3.584% 3.584% 3.584%) 54.6875%, rgb(3.046% 3.046% 3.046%) 56.25%, rgb(2.695% 2.695% 2.695%) 57.8125%, rgb(2.345% 2.345% 2.345%) 59.375%, rgb(1.995% 1.995% 1.995%) 60.9375%, rgb(1.644% 1.644% 1.644%) 62.5%, rgb(1.431% 1.431% 1.431%) 64.0625%, rgb(1.218% 1.218% 1.218%) 65.625%, rgb(1.005% 1.005% 1.005%) 67.1875%, rgb(0.793% 0.793% 0.793%) 68.75%, rgb(0.676% 0.676% 0.676%) 70.3125%, rgb(0.559% 0.559% 0.559%) 71.875%, rgb(0.442% 0.442% 0.442%) 73.4375%, rgb(0.325% 0.325% 0.325%) 75%, rgb(0.269% 0.269% 0.269%) 76.5625%, rgb(0.214% 0.214% 0.214%) 78.125%, rgb(0.158% 0.158% 0.158%) 79.6875%, rgb(0.103% 0.103% 0.103%) 81.25%, rgb(0.082% 0.082% 0.082%) 82.8125%, rgb(0.061% 0.061% 0.061%) 84.375%, rgb(0.041% 0.041% 0.041%) 85.9375%, rgb(0.02% 0.02% 0.02%) 87.5%, rgb(0.016% 0.016% 0.016%) 89.0625%, rgb(0.011% 0.011% 0.011%) 90.625%, rgb(0.006% 0.006% 0.006%) 92.1875%, rgb(0.001% 0.001% 0.001%) 93.75%, rgb(0% 0% 0%) 100%)';
+            console.log("togglePointsEnvironment: Gradient ENABLED");
+        }
+
+        // camera
+        // const CAMERA_POSITION = { x: 61.56, y: 2.97, z: 30 };
+        // camera.position.set(CAMERA_POSITION.x, CAMERA_POSITION.y, CAMERA_POSITION.z);
+
+    } else {
+        // --- DISABLE STATE ---
+        // 0. Enable Informer Logic Global Flag
+        scene.cursorInformerEnabled = true;
+
+        // 1. Show Informer Wrapper
+        if (scene.cursorInformer && scene.cursorInformer.show) {
+            scene.cursorInformer.show();
+        } else if (scene.cursorInformer) {
+            scene.cursorInformer.style.display = 'block';
+        }
+
+        // 2. Change Scene State
+        scene.scenarioState = 'room';
+
+        // 3. Reset Background to Black
+        if (container) {
+            container.style.background = 'black';
+            console.log("togglePointsEnvironment: Gradient DISABLED (Black)");
+        }
+
+        camera.position.set(17.4192690499384, 4.136164408312478, 0.015309904980740474);
+        camera.rotation.set(-0.04520672934354282, 1.5515547851416993, 0.045198372394982464);
+
+        orbitControl.target.set(-3.226367634071287, 4.1182097600816245, -0.38158710192007556);
+        orbitControl.update();
+    }
+}

@@ -4,6 +4,7 @@ import { gltfLoader, rgbeLoader, textureLoader, dracoLoader, handleProgress, reg
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass-transparentBg.js';
 import TWEEN from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/libs/tween.module.min.js';
 import { createUI as createUIFromModule } from './ui.js';
@@ -14,11 +15,12 @@ import { linkConstantUniforms } from '../utils/addConstantUniform.js'
 import { resources } from '../resources/loadResources.js';
 import { getSpriteInfo } from './spriteMapping.js';
 import { Tooltip } from './tooltip.js';
+import { initScrollMorph } from '../interactions/scroll-pointsMorph.js';
 // ============================================================================
 // CONSTANTS & CONFIGURATION
 // ============================================================================
 
-const MORPH_DURATION = 2000; // Duration of morphing animation (ms) used in TWEEN
+const MORPH_DURATION = 1500; // Duration of morphing animation (ms) used in TWEEN
 
 // Scatter Ranges: How far points are spread out
 const scatterRangeModel = 190 * 1; // Chaos range when forming a model (to fly in from)
@@ -45,7 +47,7 @@ const SCENE_BACKGROUND = '#000000'; // (Used if we set a clear color, but we use
 const RENDERER_DPR_MAX = 2;
 
 // Postprocessing (Bloom)
-const BLOOM_STRENGTH = 2;
+const BLOOM_STRENGTH = 1;
 const BLOOM_RADIUS = 0.4;
 const BLOOM_THRESHOLD = 0.8;
 
@@ -81,10 +83,11 @@ const MODEL_INFO = [
 ]
 
 export default class Points {
-    constructor(scene, camera, renderer, raycaster) {
+    constructor(scene, camera, renderer, raycaster, options = {}) {
         this.scene = scene;
         this.camera = camera;
         this.renderer = renderer;
+        this.options = Object.assign({ enableUI: true }, options);
         // Stored for model access
 
         // Postprocessing
@@ -156,6 +159,9 @@ export default class Points {
             uModelPosition: { value: new THREE.Vector3(0, 0, 0) },
             uModelRotation: { value: new THREE.Vector3(0, 0, 0) },
             uEnableMouseRotation: { value: true }, // Boolean flag
+            uAttractionForce: { value: 0.0 },
+            uIsArmatureState: { value: 0.0 },
+            uAttractionRefSize: { value: 20.0 },
             uModelScreenOffset: { value: new THREE.Vector2(0., 0) },
             uModelPointSizeFactor: { value: 1.0 },
             uHoverPointScaleFactor: { value: 2.5 },
@@ -166,6 +172,7 @@ export default class Points {
             uVibrateBoostSizeThreshold: { value: 35.0 },
             uBaseRotateSpeed: { value: 1. },
             uHoverRadius: { value: 200.0 },
+            uAttractionRadius: { value: 200.0 },
 
             // Grid
             uGridZ: { value: gridZ },
@@ -181,6 +188,8 @@ export default class Points {
 
         // Tooltip
         this.tooltip = new Tooltip();
+
+        this.enableScrollMorph = true; // Flag for scroll-based morphing interaction
 
         // Initialize
         this.init();
@@ -210,6 +219,10 @@ export default class Points {
         window.addEventListener('mouseleave', this.onMouseLeave, false);
         window.addEventListener('resize', this.onWindowResize, false);
 
+        // --- Interaction Initialization ---
+        initScrollMorph(this);
+
+        // Create Loading UI
         // Create Loading UI
         this.createLandingOverlay();
 
@@ -220,6 +233,13 @@ export default class Points {
         this.loadModel();
 
         console.log(this)
+        console.log(this)
+    }
+
+    // Animation reset
+    playIntro() {
+        this.clock.start(); // Resets elapsedTime to 0, triggering the shader 'appear' animation
+        this.clock.elapsedTime = 0; // Explicitly ensure 0
     }
 
 
@@ -258,24 +278,28 @@ export default class Points {
         document.body.appendChild(this.overlayContainer);
 
         // Progress Text
-        this.progressText = document.createElement('div');
-        this.progressText.innerText = '0%';
-        Object.assign(this.progressText.style, {
-            color: 'white', fontSize: '24px', fontFamily: 'sans-serif', marginBottom: '20px'
-        });
-        this.overlayContainer.appendChild(this.progressText);
+        if (this.options.enableUI) {
+            this.progressText = document.createElement('div');
+            this.progressText.innerText = '0%';
+            Object.assign(this.progressText.style, {
+                color: 'white', fontSize: '24px', fontFamily: 'sans-serif', marginBottom: '20px'
+            });
+            this.overlayContainer.appendChild(this.progressText);
+        }
 
         // Progress Bar
-        this.progressBarContainer = document.createElement('div');
-        Object.assign(this.progressBarContainer.style, {
-            width: '300px', height: '4px', background: 'rgba(255,255,255,0.2)', borderRadius: '2px', overflow: 'hidden'
-        });
-        this.progressBar = document.createElement('div');
-        Object.assign(this.progressBar.style, {
-            width: '0%', height: '100%', background: 'white', transition: 'width 0.1s linear'
-        });
-        this.progressBarContainer.appendChild(this.progressBar);
-        this.overlayContainer.appendChild(this.progressBarContainer);
+        if (this.options.enableUI) {
+            this.progressBarContainer = document.createElement('div');
+            Object.assign(this.progressBarContainer.style, {
+                width: '300px', height: '4px', background: 'rgba(255,255,255,0.2)', borderRadius: '2px', overflow: 'hidden'
+            });
+            this.progressBar = document.createElement('div');
+            Object.assign(this.progressBar.style, {
+                width: '0%', height: '100%', background: 'white', transition: 'width 0.1s linear'
+            });
+            this.progressBarContainer.appendChild(this.progressBar);
+            this.overlayContainer.appendChild(this.progressBarContainer);
+        }
 
         // Create wrapper for bottom controls
         this.controlsWrapper = document.createElement('div');
@@ -283,7 +307,7 @@ export default class Points {
         this.controlsWrapper.style.bottom = '30px';
         this.controlsWrapper.style.left = '50%';
         this.controlsWrapper.style.transform = 'translateX(-50%)';
-        this.controlsWrapper.style.display = 'none'; // Hidden until loaded
+        this.controlsWrapper.style.display = this.options.enableUI ? 'none' : 'flex'; // Hidden until loaded if UI enabled
         this.controlsWrapper.style.flexDirection = 'column';
         this.controlsWrapper.style.alignItems = 'center';
         this.controlsWrapper.style.gap = '15px';
@@ -367,7 +391,7 @@ export default class Points {
         this.enterBtn.style.letterSpacing = '2px';
         this.enterBtn.style.boxShadow = '0 0 15px rgba(255, 0, 119, 0.5)';
         this.enterBtn.style.transition = 'all 0.3s ease';
-        this.enterBtn.style.display = 'none'; // Initially hidden until loaded
+        this.enterBtn.style.display = this.options.enableUI ? 'none' : 'block'; // Initially hidden until loaded if UI enabled
 
         // Hover Effect
         this.enterBtn.onmouseenter = () => {
@@ -584,6 +608,10 @@ export default class Points {
             }
         }
 
+
+
+
+
         new TWEEN.Tween(this.material.uniforms.uProgress)
             .to({ value: 1.0 }, MORPH_DURATION)
             .easing(easing)
@@ -639,18 +667,70 @@ export default class Points {
             })
             .start();
     }
+
+    playAnimation(clipName, duration = 0.5, loop = true) {
+        if (!this.mixer || !this.scene.heroClips) return;
+
+        const clip = THREE.AnimationClip.findByName(this.scene.heroClips, clipName);
+        if (!clip) {
+            console.warn(`Animation clip '${clipName}' not found in heroClips.`);
+            return;
+        }
+
+        const newAction = this.mixer.clipAction(clip);
+
+        // Log the animation name being played
+        console.log(`[Points] Playing Animation: ${clipName} (loop: ${loop})`);
+
+        // Handle crossfade if there's an active action
+        if (this.activeAction && this.activeAction !== newAction) {
+            this.activeAction.fadeOut(duration);
+        }
+
+        newAction.reset();
+        newAction.setEffectiveWeight(1);
+
+        if (!loop) {
+            newAction.setLoop(THREE.LoopOnce);
+            newAction.clampWhenFinished = true; // Crucial: don't snap back to start
+        } else {
+            newAction.setLoop(THREE.LoopRepeat);
+        }
+
+        newAction.fadeIn(duration);
+        newAction.play();
+
+        this.activeAction = newAction;
+    }
+
+    /**
+     * Smoothly stops all active animations.
+     */
+    stopAnimations(duration = 0.5) {
+        if (!this.mixer || !this.activeAction) return;
+        console.log(`[Points] Stopping animations...`);
+        this.activeAction.fadeOut(duration);
+        this.activeAction = null;
+    }
     loadModel() {
         if (resources.roomModel) {
             const gltf = resources.roomModel;
-            this.model = gltf.scene;
+            this.model = SkeletonUtils.clone(gltf.scene); // Clone to avoid scene graph mutation issues
+
+            // Hide the base model - it's only used for raycasting/reference
+            this.model.traverse(child => {
+                if (child.isMesh) {
+                    child.visible = true; // MUST be true for raycasting to work
+                    if (child.material) {
+                        child.material.visible = false; // Hide from renderer
+                    }
+                }
+            });
+            this.scene.add(this.model);
 
             // Setup Animation Mixer
             if (gltf.animations && gltf.animations.length > 0) {
-                this.mixer = new THREE.AnimationMixer(gltf.scene);
-                const gangnamClip = THREE.AnimationClip.findByName(gltf.animations, 'gangnam');
-                if (gangnamClip) {
-                    this.mixer.clipAction(gangnamClip).play();
-                }
+                this.mixer = new THREE.AnimationMixer(this.model); // Use the CLONED model
             }
 
             // Define Morph Targets (Configs)
@@ -661,6 +741,9 @@ export default class Points {
                 uIsChaos: { value: 0.0 },
                 uModelScreenOffset: { value: new THREE.Vector2(0.2, 0) },
                 uModelVibFactor: { value: 6.0 },
+                uIsArmatureState: { value: 0.0 },
+                uAttractionForce: { value: 0.0 }, // No attraction
+                uLightSizeBoost: { value: 2.5 }
             });
 
             this._addMorphDataByModelName('a-char', {
@@ -672,12 +755,19 @@ export default class Points {
                 uEnableMouseRotation: { value: false },
                 uGridZ: { value: -800 },
                 uModelPointSizeFactor: { value: 1.2 },
+                uIsArmatureState: { value: 1.0 }, // Enable attraction logic
+                uAttractionForce: { value: 1000.0 }, // Default attraction force
+                uAttractionRefSize: { value: 12.0 }, // Lower = Heavier = More stable
+                uAttractionRadius: { value: 2000.0 }, // Attraction interaction range
+                uLightSizeBoost: { value: 0.5 }
             });
 
             // Loading Complete UI
             // Loading Complete UI - Simulate Progress
             let currentProgress = 0;
             const simulateLoading = () => {
+                if (!this.options.enableUI) return;
+
                 if (currentProgress >= 100) {
                     this.progressText.innerText = '100%';
                     this.progressBar.style.width = '100%';
@@ -846,6 +936,8 @@ export default class Points {
         this.points.frustumCulled = false; // Disable culling explicitly
         geometry.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, 0, 0), 5000.0); // Create huge bounding sphere to prevent any culling calculations
         // geometry.center(); // Don't center, keep explicit positions
+        this.points.name = 'PointsCloud';
+        this.points.parentInstance = this; // Back-reference for Tooltip logic
         this.scene.add(this.points);
 
         // add morph data named chaos
@@ -1171,6 +1263,7 @@ export default class Points {
         this.mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
         this.rawMouse.set(event.clientX, event.clientY);
         this.targetMouse.copy(this.mouse);
+        this.lastMouseMoveTime = performance.now();
 
         if (this.isFirstMouseMove) {
             this.smoothMouse.copy(this.targetMouse);
@@ -1196,14 +1289,26 @@ export default class Points {
 
     // _getPointInfo has been moved to tooltip.js
 
-    update() {
-        TWEEN.update();
+    update(shouldUpdateTween = true) {
+        if (shouldUpdateTween) TWEEN.update();
         if (this.controls) this.controls.update();
 
         if (this.mixer) {
             this.mixer.update(this.clock.getDelta());
 
-            // Force model update (since it's not in scene)
+            // Sync model transform with shader uniforms (for accurate raycasting)
+            if (this.model && this.material.uniforms.uModelScale) {
+                const uScale = this.material.uniforms.uModelScale.value;
+                const uPos = this.material.uniforms.uModelPosition.value;
+                const uRot = this.material.uniforms.uModelRotation.value;
+
+                this.model.scale.setScalar(uScale);
+                this.model.position.copy(uPos);
+                // The shader uses a specific rotation order (Z*Y*X in matrix calc often corresponds to XYZ or YXZ depending on logic)
+                // In our shader we usually keep it simple or match Three.js default XYZ.
+                this.model.rotation.set(uRot.x, uRot.y, uRot.z);
+            }
+
             if (this.model) this.model.updateMatrixWorld(true);
 
             // Force skeleton update since Points doesn't do it automatically
@@ -1224,8 +1329,23 @@ export default class Points {
 
         // Delegate Tooltip Logic
         const currentMorphIndex = this.points.geometry.morphCurrentIndex;
-        // Chaos (undefined/0) or Root (1)
-        const isTooltipEnabled = (currentMorphIndex === undefined || currentMorphIndex <= 1);
+
+        // 1. State Check: Only Chaos (0) or Root (1)
+        const isCorrectState = (currentMorphIndex === undefined || currentMorphIndex <= 1);
+
+        // 2. Morph Check: Not while morphing
+        // uProgress goes from 0 to 1 during morph. Stabilizes at 0 or 1.
+        // We consider "morphing" if it's not close to limits.
+        const prog = this.material.uniforms.uProgress.value;
+        const isStable = (prog < 0.1 || prog > 0.9);
+
+        // 3. Mouse Dwell Check: Not while moving/busy
+        const now = performance.now();
+        const timeSinceMove = now - (this.lastMouseMoveTime || 0);
+        const isMouseResting = timeSinceMove > 40; // 40ms dwell time (Faster response)
+
+        // Combined Condition
+        const isTooltipEnabled = isCorrectState && isStable && isMouseResting;
 
         if (this.tooltip) {
             if (isTooltipEnabled) {
@@ -1237,6 +1357,10 @@ export default class Points {
                     this.rawMouse,
                     this.camera
                 );
+                // Cache the last detected index to help the area-hover logic
+                if (this.tooltip.lastHoveredIndex !== -1) {
+                    this.points.geometry.lastClosestIndex = this.tooltip.lastHoveredIndex;
+                }
             } else {
                 this.tooltip.hide();
             }
@@ -1274,10 +1398,34 @@ export default class Points {
                 // Lerp between base (-100) and target based on interactionStrength
                 this.material.uniforms.uLightDir.value.y = -100.0 + (targetLightY - (-100.0)) * interactionStrength;
             }
+
+            // Smoothing logic for attraction falloff (Remove the Snap)
+            if (this.model && currentMorphIndex >= 1) {
+                const intersects = this.raycaster.intersectObject(this.model, true);
+                const isOver = intersects.length > 0;
+
+                // Get the target force for this state
+                const morphData = this._getMorphData(currentMorphIndex);
+                const targetForce = (morphData && morphData.targetUniforms && morphData.targetUniforms.uAttractionForce)
+                    ? morphData.targetUniforms.uAttractionForce.value
+                    : 0.0;
+
+                if (isOver) {
+                    // Inside the model: Target force is 0.0
+                    if (!this._mouseWasOverModel) console.log('Mouse over GLB Points Area');
+
+                    // Smoothly lerp DOWN to 0.0 to prevent "Snap" when entering
+                    const currentForce = this.material.uniforms.uAttractionForce.value;
+                    this.material.uniforms.uAttractionForce.value += (0.0 - currentForce) * 0.1;
+                } else {
+                    // Outside the model: Target force is the Morph Default (e.g. 1000)
+                    const currentForce = this.material.uniforms.uAttractionForce.value;
+                    this.material.uniforms.uAttractionForce.value += (targetForce - currentForce) * 0.1; // Smooth recovery
+                }
+                this._mouseWasOverModel = isOver;
+            }
         }
 
         this.composer.render();
     }
 }
-
-
